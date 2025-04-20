@@ -70,6 +70,7 @@ export default function CuestionarioPage() {
   const router = useRouter()
   const [step, setStep] = useState(1)
   const totalSteps = 5
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -81,31 +82,31 @@ export default function CuestionarioPage() {
 
       horaDespertarLaboral: "",
       minutosPararDespertarLaboral: 0,
-      despertarAntesAlarmaLaboral: false,
+      despertarAntesAlarmaLaboral: null, // Cambiado de false a null
       horaCompletamenteDespiertaLaboral: "",
       horaEnergiaBajaLaboral: "",
       horaAcostarseLaboral: "",
       minutosParaDormirseLaboral: 0,
-      siestaDiaLaboral: null, // Cambiado de false a null
+      siestaDiaLaboral: null,
       duracionSiestaDiaLaboral: null,
 
       horaSuenoDespetarLibre: "",
       horaDespertarLibre: "",
-      intentaDormirMasLibre: null, // Cambiado de false a null
+      intentaDormirMasLibre: null,
       minutosExtraSuenoLibre: null,
       minutosPararDespertarLibre: 0,
       horaCompletamenteDespiertaLibre: "",
       horaEnergiaBajaLibre: "",
       horaAcostarseLibre: "",
       minutosParaDormirseLibre: 0,
-      siestaDiaLibre: null, // Cambiado de false a null
+      siestaDiaLibre: null,
       duracionSiestaDiaLibre: null,
 
       actividadesAntesDormir: [],
       minutosLecturaAntesDormir: 0,
       minutosMaximoLectura: 0,
-      prefiereOscuridadTotal: false,
-      despiertaMejorConLuz: false,
+      prefiereOscuridadTotal: null, // Cambiado de false a null
+      despiertaMejorConLuz: null, // Cambiado de false a null
 
       horasAireLibreDiasLaborales: 0,
       minutosAireLibreDiasLaborales: 0,
@@ -194,6 +195,8 @@ export default function CuestionarioPage() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
+      setIsSubmitting(true)
+
       // Calcular los resultados
       const resultados = calcularResultados(values)
 
@@ -227,6 +230,7 @@ export default function CuestionarioPage() {
         description: "Hubo un problema al enviar el cuestionario. Por favor, intentalo de nuevo.",
         variant: "destructive",
       })
+      setIsSubmitting(false)
     }
   }
 
@@ -410,7 +414,7 @@ export default function CuestionarioPage() {
                         <FormControl>
                           <RadioGroup
                             onValueChange={(value) => field.onChange(value === "true")}
-                            value={field.value ? "true" : "false"}
+                            value={field.value === null ? "" : field.value ? "true" : "false"}
                             className="flex flex-col space-y-1"
                           >
                             <FormItem className="flex items-center space-x-3 space-y-0">
@@ -869,7 +873,7 @@ export default function CuestionarioPage() {
                         <FormControl>
                           <RadioGroup
                             onValueChange={(value) => field.onChange(value === "true")}
-                            value={field.value ? "true" : "false"}
+                            value={field.value === null ? "" : field.value ? "true" : "false"}
                             className="flex flex-col space-y-1"
                           >
                             <FormItem className="flex items-center space-x-3 space-y-0">
@@ -902,7 +906,7 @@ export default function CuestionarioPage() {
                         <FormControl>
                           <RadioGroup
                             onValueChange={(value) => field.onChange(value === "true")}
-                            value={field.value ? "true" : "false"}
+                            value={field.value === null ? "" : field.value ? "true" : "false"}
                             className="flex flex-col space-y-1"
                           >
                             <FormItem className="flex items-center space-x-3 space-y-0">
@@ -1022,7 +1026,9 @@ export default function CuestionarioPage() {
                   Siguiente
                 </Button>
               ) : (
-                <Button type="submit">Enviá</Button>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? "Enviando..." : "Enviá"}
+                </Button>
               )}
             </div>
           </form>
