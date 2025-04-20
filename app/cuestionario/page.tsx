@@ -86,19 +86,19 @@ export default function CuestionarioPage() {
       horaEnergiaBajaLaboral: "",
       horaAcostarseLaboral: "",
       minutosParaDormirseLaboral: 0,
-      siestaDiaLaboral: false,
+      siestaDiaLaboral: null, // Cambiado de false a null
       duracionSiestaDiaLaboral: null,
 
       horaSuenoDespetarLibre: "",
       horaDespertarLibre: "",
-      intentaDormirMasLibre: false,
+      intentaDormirMasLibre: null, // Cambiado de false a null
       minutosExtraSuenoLibre: null,
       minutosPararDespertarLibre: 0,
       horaCompletamenteDespiertaLibre: "",
       horaEnergiaBajaLibre: "",
       horaAcostarseLibre: "",
       minutosParaDormirseLibre: 0,
-      siestaDiaLibre: false,
+      siestaDiaLibre: null, // Cambiado de false a null
       duracionSiestaDiaLibre: null,
 
       actividadesAntesDormir: [],
@@ -156,6 +156,14 @@ export default function CuestionarioPage() {
           "minutosMaximoLectura",
           "prefiereOscuridadTotal",
           "despiertaMejorConLuz",
+        ]
+        break
+      case 5:
+        fieldsToValidate = [
+          "horasAireLibreDiasLaborales",
+          "minutosAireLibreDiasLaborales",
+          "horasAireLibreDiasLibres",
+          "minutosAireLibreDiasLibres",
         ]
         break
     }
@@ -368,8 +376,8 @@ export default function CuestionarioPage() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>
-                          Tengo que despertarme a las... (formato 24h, ej: 15:00 para 3 de la tarde, 00:00 para 12 de la
-                          noche)
+                          Tengo que despertarme a las... (formato 24h, ej: 07:00 para 7 de la mañana, 12:00 para 12 del
+                          mediodía)
                         </FormLabel>
                         <FormControl>
                           <Input type="time" {...field} />
@@ -430,8 +438,8 @@ export default function CuestionarioPage() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>
-                          A partir de las... estoy completamente despierto/a (formato 24h, ej: 15:00 para 3 de la tarde,
-                          00:00 para 12 de la noche)
+                          A partir de las... estoy completamente despierto/a (formato 24h, ej: 07:00 para 7 de la
+                          mañana, 12:00 para 12 del mediodía)
                         </FormLabel>
                         <FormControl>
                           <Input type="time" {...field} />
@@ -448,7 +456,7 @@ export default function CuestionarioPage() {
                       <FormItem>
                         <FormLabel>
                           Alrededor de las... tengo una bajada de energía (formato 24h, ej: 15:00 para 3 de la tarde,
-                          00:00 para 12 de la noche)
+                          18:00 para 6 de la tarde)
                         </FormLabel>
                         <FormControl>
                           <Input type="time" {...field} />
@@ -464,8 +472,8 @@ export default function CuestionarioPage() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>
-                          En las noches antes de días laborables, me acuesto a las... (formato 24h, ej: 15:00 para 3 de
-                          la tarde, 00:00 para 12 de la noche)
+                          En las noches antes de días laborables, me acuesto a las... (formato 24h, ej: 22:00 para 10 de
+                          la noche, 00:00 para 12 de la madrugada)
                         </FormLabel>
                         <FormControl>
                           <Input type="time" {...field} />
@@ -498,7 +506,7 @@ export default function CuestionarioPage() {
                         <FormControl>
                           <RadioGroup
                             onValueChange={(value) => field.onChange(value === "true")}
-                            value={field.value ? "true" : "false"}
+                            value={field.value === null ? "" : field.value ? "true" : "false"}
                             className="flex flex-col space-y-1"
                           >
                             <FormItem className="flex items-center space-x-3 space-y-0">
@@ -561,8 +569,8 @@ export default function CuestionarioPage() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>
-                          Mi sueño sería dormir hasta las... (formato 24h, ej: 15:00 para 3 de la tarde, 00:00 para 12
-                          de la noche)
+                          Mi sueño sería dormir hasta las... (formato 24h, ej: 09:00 para 9 de la mañana, 12:00 para 12
+                          del mediodía)
                         </FormLabel>
                         <FormControl>
                           <Input type="time" {...field} />
@@ -578,8 +586,8 @@ export default function CuestionarioPage() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>
-                          Normalmente me despierto a las... (formato 24h, ej: 15:00 para 3 de la tarde, 00:00 para 12 de
-                          la noche)
+                          Normalmente me despierto a las... (formato 24h, ej: 09:00 para 9 de la mañana, 12:00 para 12
+                          del mediodía)
                         </FormLabel>
                         <FormControl>
                           <Input type="time" {...field} />
@@ -600,7 +608,7 @@ export default function CuestionarioPage() {
                         <FormControl>
                           <RadioGroup
                             onValueChange={(value) => field.onChange(value === "true")}
-                            value={field.value ? "true" : "false"}
+                            value={field.value === null ? "" : field.value ? "true" : "false"}
                             className="flex flex-col space-y-1"
                           >
                             <FormItem className="flex items-center space-x-3 space-y-0">
@@ -663,8 +671,8 @@ export default function CuestionarioPage() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>
-                          A partir de las... estoy completamente despierto/a (formato 24h, ej: 15:00 para 3 de la tarde,
-                          00:00 para 12 de la noche)
+                          A partir de las... estoy completamente despierto/a (formato 24h, ej: 09:00 para 9 de la
+                          mañana, 12:00 para 12 del mediodía)
                         </FormLabel>
                         <FormControl>
                           <Input type="time" {...field} />
@@ -681,7 +689,7 @@ export default function CuestionarioPage() {
                       <FormItem>
                         <FormLabel>
                           Alrededor de las... tengo una bajada de energía (formato 24h, ej: 15:00 para 3 de la tarde,
-                          00:00 para 12 de la noche)
+                          18:00 para 6 de la tarde)
                         </FormLabel>
                         <FormControl>
                           <Input type="time" {...field} />
@@ -697,8 +705,8 @@ export default function CuestionarioPage() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>
-                          En las noches antes de días libres, me acuesto a las... (formato 24h, ej: 15:00 para 3 de la
-                          tarde, 00:00 para 12 de la noche)
+                          En las noches antes de días libres, me acuesto a las... (formato 24h, ej: 22:00 para 10 de la
+                          noche, 00:00 para 12 de la madrugada)
                         </FormLabel>
                         <FormControl>
                           <Input type="time" {...field} />
@@ -731,7 +739,7 @@ export default function CuestionarioPage() {
                         <FormControl>
                           <RadioGroup
                             onValueChange={(value) => field.onChange(value === "true")}
-                            value={field.value ? "true" : "false"}
+                            value={field.value === null ? "" : field.value ? "true" : "false"}
                             className="flex flex-col space-y-1"
                           >
                             <FormItem className="flex items-center space-x-3 space-y-0">
