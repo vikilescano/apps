@@ -9,7 +9,7 @@ import { decimalAHora } from "@/lib/cronotipo-utils"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Progress } from "@/components/ui/progress"
-import { Clock, Sun, Moon, Calendar, ArrowRight } from "lucide-react"
+import { Clock, Sun, Moon, Calendar, ArrowRight, Sunrise, Sunset } from "lucide-react"
 
 export default function ResultadosPage() {
   const { id } = useParams()
@@ -92,6 +92,62 @@ export default function ResultadosPage() {
     return <Clock className="h-12 w-12 text-emerald-500" /> // Para cronotipo intermedio
   }
 
+  // Calcular la posición en la barra de cronotipo (de 0 a 100)
+  const getCronotipoPosition = () => {
+    // MSFsc va de aproximadamente 2 a 7 horas
+    // Convertimos a una escala de 0 a 100
+    const min = 2
+    const max = 7
+    const position = ((resultados.MSFsc - min) / (max - min)) * 100
+    return Math.max(0, Math.min(100, position)) // Aseguramos que esté entre 0 y 100
+  }
+
+  // Información sobre los diferentes cronotipos
+  const cronotiposInfo = [
+    {
+      tipo: "Extremadamente temprano",
+      descripcion: "Preferencia por despertar muy temprano (4-5 am) y acostarse temprano (8-9 pm).",
+      color: "text-amber-600",
+      icon: <Sunrise className="h-6 w-6 text-amber-600" />,
+    },
+    {
+      tipo: "Moderadamente temprano",
+      descripcion: "Preferencia por despertar temprano (5-6 am) y acostarse relativamente temprano (9-10 pm).",
+      color: "text-amber-500",
+      icon: <Sunrise className="h-6 w-6 text-amber-500" />,
+    },
+    {
+      tipo: "Ligeramente temprano",
+      descripcion: "Tendencia a despertar antes que el promedio (6-7 am) y acostarse antes (10-11 pm).",
+      color: "text-amber-400",
+      icon: <Sun className="h-6 w-6 text-amber-400" />,
+    },
+    {
+      tipo: "Intermedio",
+      descripcion: "Patrón de sueño promedio, sin preferencia marcada por mañana o noche.",
+      color: "text-emerald-500",
+      icon: <Clock className="h-6 w-6 text-emerald-500" />,
+    },
+    {
+      tipo: "Ligeramente tardío",
+      descripcion: "Tendencia a despertar más tarde (7-8 am) y acostarse más tarde (11 pm-12 am).",
+      color: "text-indigo-400",
+      icon: <Sunset className="h-6 w-6 text-indigo-400" />,
+    },
+    {
+      tipo: "Moderadamente tardío",
+      descripcion: "Preferencia por despertar tarde (8-9 am) y acostarse tarde (12-1 am).",
+      color: "text-indigo-500",
+      icon: <Sunset className="h-6 w-6 text-indigo-500" />,
+    },
+    {
+      tipo: "Extremadamente tardío",
+      descripcion: "Preferencia por despertar muy tarde (9-10 am o después) y acostarse muy tarde (1-2 am o después).",
+      color: "text-indigo-600",
+      icon: <Moon className="h-6 w-6 text-indigo-600" />,
+    },
+  ]
+
   return (
     <div className="container py-10">
       <div className="max-w-3xl mx-auto">
@@ -127,6 +183,30 @@ export default function ResultadosPage() {
                   <p className="text-muted-foreground">
                     Punto medio del sueño corregido (MSFsc): <span className="font-semibold">{MSFsc_hora}</span>
                   </p>
+                </div>
+
+                {/* Barra de cronotipo */}
+                <div className="mt-6 mb-8">
+                  <h3 className="text-lg font-medium mb-3">Tu posición en el espectro de cronotipos:</h3>
+                  <div className="relative pt-10 pb-4">
+                    {/* Etiquetas */}
+                    <div className="flex justify-between mb-2 text-sm">
+                      <span className="text-amber-600 font-medium">Alondra (Madrugador)</span>
+                      <span className="text-indigo-600 font-medium">Búho (Noctámbulo)</span>
+                    </div>
+
+                    {/* Barra de gradiente */}
+                    <div className="h-4 w-full bg-gradient-to-r from-amber-500 via-emerald-500 to-indigo-600 rounded-full"></div>
+
+                    {/* Marcador de posición */}
+                    <div
+                      className="absolute bottom-0 transform -translate-x-1/2"
+                      style={{ left: `${getCronotipoPosition()}%` }}
+                    >
+                      <div className="w-4 h-8 bg-white border-2 border-gray-800 rounded-full"></div>
+                      <div className="mt-2 text-center font-medium">Tú</div>
+                    </div>
+                  </div>
                 </div>
 
                 <Separator />
@@ -210,6 +290,25 @@ export default function ResultadosPage() {
                       sea posible.
                     </li>
                   </ul>
+                </div>
+
+                {/* Explicación de los diferentes cronotipos */}
+                <div className="mt-8">
+                  <h3 className="text-lg font-medium mb-4">Tipos de cronotipos</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {cronotiposInfo.map((cronotipo) => (
+                      <div
+                        key={cronotipo.tipo}
+                        className={`p-4 rounded-lg border ${resultados.cronotipo === cronotipo.tipo ? "border-primary bg-primary/5" : "border-gray-200"}`}
+                      >
+                        <div className="flex items-center gap-2 mb-2">
+                          {cronotipo.icon}
+                          <h4 className={`font-medium ${cronotipo.color}`}>{cronotipo.tipo}</h4>
+                        </div>
+                        <p className="text-sm text-muted-foreground">{cronotipo.descripcion}</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </CardContent>
             </Card>

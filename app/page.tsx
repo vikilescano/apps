@@ -35,6 +35,19 @@ export default function Home() {
           </Link>
         </CardFooter>
       </Card>
+
+      <div className="flex flex-col md:flex-row gap-4 w-full max-w-2xl">
+        <Link href="/admin" className="w-full md:w-1/2">
+          <Button variant="outline" className="w-full">
+            Panel de Administración
+          </Button>
+        </Link>
+        <Link href="/investigadores" className="w-full md:w-1/2">
+          <Button variant="outline" className="w-full">
+            Portal para Investigadores
+          </Button>
+        </Link>
+      </div>
     </div>
   )
 }

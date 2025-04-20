@@ -84,7 +84,7 @@ export default function AdminPage() {
       // Datos demográficos
       "edad",
       "genero",
-      "ciudad",
+      "provincia",
       "pais",
 
       // Días laborables
@@ -228,7 +228,7 @@ export default function AdminPage() {
                     <TableHead>Fecha</TableHead>
                     <TableHead>Edad</TableHead>
                     <TableHead>Género</TableHead>
-                    <TableHead>Ciudad</TableHead>
+                    <TableHead>Provincia</TableHead>
                     <TableHead>País</TableHead>
                     <TableHead>Cronotipo</TableHead>
                     <TableHead>MSFsc</TableHead>
@@ -255,7 +255,7 @@ export default function AdminPage() {
                         <TableCell>{new Date(respuesta.created_at).toLocaleDateString()}</TableCell>
                         <TableCell>{respuesta.edad || "-"}</TableCell>
                         <TableCell>{respuesta.genero || "-"}</TableCell>
-                        <TableCell>{respuesta.ciudad || "-"}</TableCell>
+                        <TableCell>{respuesta.provincia || "-"}</TableCell>
                         <TableCell>{respuesta.pais || "-"}</TableCell>
                         <TableCell>{respuesta.cronotipo}</TableCell>
                         <TableCell>
