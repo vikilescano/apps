@@ -16,9 +16,8 @@ export async function POST(request: Request) {
       // Datos demográficos
       edad: data.edad,
       genero: data.genero,
-      provincia: data.provincia, // Cambiado de ciudad a provincia
+      provincia: data.provincia,
       pais: data.pais,
-      email: data.email,
 
       // Días laborables
       hora_despertar_lab: data.horaDespertarLaboral,
@@ -74,28 +73,6 @@ export async function POST(request: Request) {
     if (error) {
       console.error("Error al guardar en Supabase:", error)
       return NextResponse.json({ error: "Error al guardar la respuesta" }, { status: 500 })
-    }
-
-    // Si hay un correo electrónico, enviar los resultados
-    if (data.email) {
-      try {
-        await fetch("/api/enviar-resultados", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            email: data.email,
-            id: id,
-            cronotipo: data.cronotipo,
-            msf_sc: data.MSFsc,
-            sjl: data.SJL,
-          }),
-        })
-      } catch (emailError) {
-        console.error("Error al enviar el correo electrónico:", emailError)
-        // No interrumpimos el flujo si falla el envío del correo
-      }
     }
 
     return NextResponse.json({ id, success: true })

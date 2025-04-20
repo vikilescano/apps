@@ -22,7 +22,6 @@ const formSchema = z.object({
   genero: z.enum(["femenino", "masculino"]).optional().nullable(),
   provincia: z.string().optional().nullable(),
   pais: z.string().optional().nullable(),
-  email: z.string().email("Email inválido").optional().nullable(),
 
   // Días laborables
   horaDespertarLaboral: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Formato de hora inválido (HH:MM)"),
@@ -79,7 +78,6 @@ export default function CuestionarioPage() {
       genero: null,
       provincia: null,
       pais: null,
-      email: null,
 
       horaDespertarLaboral: "",
       minutosPararDespertarLaboral: 0,
@@ -337,26 +335,6 @@ export default function CuestionarioPage() {
                       )}
                     />
                   </div>
-
-                  <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email (opcional, para recibir tus resultados)</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="email"
-                            placeholder="tu@email.com"
-                            {...field}
-                            value={field.value || ""}
-                            onChange={(e) => field.onChange(e.target.value || null)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
                 </CardContent>
               </Card>
             )}
@@ -410,7 +388,7 @@ export default function CuestionarioPage() {
                         <FormControl>
                           <RadioGroup
                             onValueChange={(value) => field.onChange(value === "true")}
-                            defaultValue={field.value ? "true" : "false"}
+                            value={field.value ? "true" : "false"}
                             className="flex flex-col space-y-1"
                           >
                             <FormItem className="flex items-center space-x-3 space-y-0">
@@ -506,7 +484,7 @@ export default function CuestionarioPage() {
                         <FormControl>
                           <RadioGroup
                             onValueChange={(value) => field.onChange(value === "true")}
-                            defaultValue={field.value ? "true" : "false"}
+                            value={field.value ? "true" : "false"}
                             className="flex flex-col space-y-1"
                           >
                             <FormItem className="flex items-center space-x-3 space-y-0">
@@ -608,7 +586,7 @@ export default function CuestionarioPage() {
                         <FormControl>
                           <RadioGroup
                             onValueChange={(value) => field.onChange(value === "true")}
-                            defaultValue={field.value ? "true" : "false"}
+                            value={field.value ? "true" : "false"}
                             className="flex flex-col space-y-1"
                           >
                             <FormItem className="flex items-center space-x-3 space-y-0">
@@ -739,7 +717,7 @@ export default function CuestionarioPage() {
                         <FormControl>
                           <RadioGroup
                             onValueChange={(value) => field.onChange(value === "true")}
-                            defaultValue={field.value ? "true" : "false"}
+                            value={field.value ? "true" : "false"}
                             className="flex flex-col space-y-1"
                           >
                             <FormItem className="flex items-center space-x-3 space-y-0">
@@ -869,7 +847,7 @@ export default function CuestionarioPage() {
                         <FormControl>
                           <RadioGroup
                             onValueChange={(value) => field.onChange(value === "true")}
-                            defaultValue={field.value ? "true" : "false"}
+                            value={field.value ? "true" : "false"}
                             className="flex flex-col space-y-1"
                           >
                             <FormItem className="flex items-center space-x-3 space-y-0">
@@ -902,7 +880,7 @@ export default function CuestionarioPage() {
                         <FormControl>
                           <RadioGroup
                             onValueChange={(value) => field.onChange(value === "true")}
-                            defaultValue={field.value ? "true" : "false"}
+                            value={field.value ? "true" : "false"}
                             className="flex flex-col space-y-1"
                           >
                             <FormItem className="flex items-center space-x-3 space-y-0">

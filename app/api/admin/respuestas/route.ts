@@ -19,20 +19,20 @@ export async function GET() {
     // Mapear los datos para el frontend
     const respuestas = data.map((item) => ({
       id: item.id,
-      createdAt: item.created_at,
+      created_at: item.created_at,
       edad: item.edad,
       genero: item.genero,
-      ciudad: item.ciudad,
+      provincia: item.provincia,
       pais: item.pais,
 
       // Resultados calculados
-      MSF: item.msf,
-      MSFsc: item.msf_sc,
-      SDw: item.sd_w,
-      SDf: item.sd_f,
-      SDweek: item.sd_week,
-      SOf: item.so_f,
-      SJL: item.sjl,
+      msf: item.msf,
+      msf_sc: item.msf_sc,
+      sd_w: item.sd_w,
+      sd_f: item.sd_f,
+      sd_week: item.sd_week,
+      so_f: item.so_f,
+      sjl: item.sjl,
       cronotipo: item.cronotipo,
 
       // Incluir todos los campos originales para el CSV

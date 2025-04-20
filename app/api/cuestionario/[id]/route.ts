@@ -21,9 +21,8 @@ export async function GET(request: Request, { params }: { params: { id: string }
       // Datos demográficos
       edad: data.edad,
       genero: data.genero,
-      provincia: data.provincia, // Cambiado de ciudad a provincia
+      provincia: data.provincia,
       pais: data.pais,
-      email: data.email,
 
       // Días laborables
       horaDespertarLaboral: data.hora_despertar_lab,

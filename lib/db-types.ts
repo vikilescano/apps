@@ -5,7 +5,7 @@ export interface CuestionarioRespuesta {
   // Datos demográficos
   edad: number | null
   genero: string | null
-  provincia: string | null // Cambiado de ciudad a provincia
+  provincia: string | null
   pais: string | null
 
   // Días laborables
@@ -54,7 +54,4 @@ export interface CuestionarioRespuesta {
   so_f: number // Inicio del sueño en días libres (en horas decimales)
   sjl: number // Jetlag social (en horas decimales)
   cronotipo: string // Categoría de cronotipo
-
-  // Correo electrónico para enviar resultados
-  email: string | null
 }

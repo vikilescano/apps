@@ -82,7 +82,6 @@ export default function ResultadosPage() {
   // Determinar el color y el icono según el cronotipo
   const getCronotipoColor = () => {
     if (resultados.cronotipo.includes("temprano")) return "text-amber-500"
-    if (resultados.cronotipo.includes("tardío")) return 'text-indigo-600  return "text-amber-500'
     if (resultados.cronotipo.includes("tardío")) return "text-indigo-600"
     return "text-emerald-500" // Para cronotipo intermedio
   }
