@@ -114,53 +114,67 @@ export default function CuestionarioPage() {
     },
   })
 
-  const nextStep = () => {
-    const fieldsToValidate = {
-      1: [], // Hacemos que todos los campos sean opcionales
-      2: [
-        "horaDespertarLaboral",
-        "minutosPararDespertarLaboral",
-        "despertarAntesAlarmaLaboral",
-        "horaCompletamenteDespiertaLaboral",
-        "horaEnergiaBajaLaboral",
-        "horaAcostarseLaboral",
-        "minutosParaDormirseLaboral",
-        "siestaDiaLaboral",
-      ],
-      3: [
-        "horaSuenoDespetarLibre",
-        "horaDespertarLibre",
-        "intentaDormirMasLibre",
-        "minutosPararDespertarLibre",
-        "horaCompletamenteDespiertaLibre",
-        "horaEnergiaBajaLibre",
-        "horaAcostarseLibre",
-        "minutosParaDormirseLibre",
-        "siestaDiaLibre",
-      ],
-      4: [
-        "actividadesAntesDormir",
-        "minutosLecturaAntesDormir",
-        "minutosMaximoLectura",
-        "prefiereOscuridadTotal",
-        "despiertaMejorConLuz",
-      ],
-    }[step]
+  const nextStep = async () => {
+    // Definir los campos a validar según el paso actual
+    let fieldsToValidate: string[] = []
 
-    form.trigger(fieldsToValidate as any).then((isValid) => {
-      if (isValid) {
-        if (step < totalSteps) {
-          setStep(step + 1)
-          window.scrollTo(0, 0)
-        }
-      } else {
-        toast({
-          title: "Por favor revisá los campos",
-          description: "Hay errores en el formulario que deben ser corregidos.",
-          variant: "destructive",
-        })
+    switch (step) {
+      case 1:
+        // Paso 1: Datos demográficos (opcionales)
+        setStep(step + 1)
+        window.scrollTo(0, 0)
+        return
+      case 2:
+        fieldsToValidate = [
+          "horaDespertarLaboral",
+          "minutosPararDespertarLaboral",
+          "despertarAntesAlarmaLaboral",
+          "horaCompletamenteDespiertaLaboral",
+          "horaEnergiaBajaLaboral",
+          "horaAcostarseLaboral",
+          "minutosParaDormirseLaboral",
+          "siestaDiaLaboral",
+        ]
+        break
+      case 3:
+        fieldsToValidate = [
+          "horaSuenoDespetarLibre",
+          "horaDespertarLibre",
+          "intentaDormirMasLibre",
+          "minutosPararDespertarLibre",
+          "horaCompletamenteDespiertaLibre",
+          "horaEnergiaBajaLibre",
+          "horaAcostarseLibre",
+          "minutosParaDormirseLibre",
+          "siestaDiaLibre",
+        ]
+        break
+      case 4:
+        fieldsToValidate = [
+          "actividadesAntesDormir",
+          "minutosLecturaAntesDormir",
+          "minutosMaximoLectura",
+          "prefiereOscuridadTotal",
+          "despiertaMejorConLuz",
+        ]
+        break
+    }
+
+    // Validar los campos
+    const isValid = await form.trigger(fieldsToValidate as any)
+
+    if (isValid) {
+      if (step < totalSteps) {
+        setStep(step + 1)
+        window.scrollTo(0, 0)
       }
-    })
+    } else {
+      toast({
+        title: "Por favor revisá los campos",
+        description: "Hay errores en el formulario que deben ser corregidos.",
+        variant: "destructive",
+      })
+    }
   }
 
   const prevStep = () => {
@@ -354,8 +368,8 @@ export default function CuestionarioPage() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>
-                          Tengo que despertarme a las... (formato 24h, ej: 15:00 para 3 de la tarde, 12:00 am para 12 de
-                          la noche)
+                          Tengo que despertarme a las... (formato 24h, ej: 15:00 para 3 de la tarde, 00:00 para 12 de la
+                          noche)
                         </FormLabel>
                         <FormControl>
                           <Input type="time" {...field} />
@@ -417,7 +431,7 @@ export default function CuestionarioPage() {
                       <FormItem>
                         <FormLabel>
                           A partir de las... estoy completamente despierto/a (formato 24h, ej: 15:00 para 3 de la tarde,
-                          12:00 am para 12 de la noche)
+                          00:00 para 12 de la noche)
                         </FormLabel>
                         <FormControl>
                           <Input type="time" {...field} />
@@ -434,7 +448,7 @@ export default function CuestionarioPage() {
                       <FormItem>
                         <FormLabel>
                           Alrededor de las... tengo una bajada de energía (formato 24h, ej: 15:00 para 3 de la tarde,
-                          12:00 am para 12 de la noche)
+                          00:00 para 12 de la noche)
                         </FormLabel>
                         <FormControl>
                           <Input type="time" {...field} />
@@ -451,7 +465,7 @@ export default function CuestionarioPage() {
                       <FormItem>
                         <FormLabel>
                           En las noches antes de días laborables, me acuesto a las... (formato 24h, ej: 15:00 para 3 de
-                          la tarde, 12:00 am para 12 de la noche)
+                          la tarde, 00:00 para 12 de la noche)
                         </FormLabel>
                         <FormControl>
                           <Input type="time" {...field} />
@@ -547,8 +561,8 @@ export default function CuestionarioPage() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>
-                          Mi sueño sería dormir hasta las... (formato 24h, ej: 15:00 para 3 de la tarde, 12:00 am para
-                          12 de la noche)
+                          Mi sueño sería dormir hasta las... (formato 24h, ej: 15:00 para 3 de la tarde, 00:00 para 12
+                          de la noche)
                         </FormLabel>
                         <FormControl>
                           <Input type="time" {...field} />
@@ -564,8 +578,8 @@ export default function CuestionarioPage() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>
-                          Normalmente me despierto a las... (formato 24h, ej: 15:00 para 3 de la tarde, 12:00 am para 12
-                          de la noche)
+                          Normalmente me despierto a las... (formato 24h, ej: 15:00 para 3 de la tarde, 00:00 para 12 de
+                          la noche)
                         </FormLabel>
                         <FormControl>
                           <Input type="time" {...field} />
@@ -650,7 +664,7 @@ export default function CuestionarioPage() {
                       <FormItem>
                         <FormLabel>
                           A partir de las... estoy completamente despierto/a (formato 24h, ej: 15:00 para 3 de la tarde,
-                          12:00 am para 12 de la noche)
+                          00:00 para 12 de la noche)
                         </FormLabel>
                         <FormControl>
                           <Input type="time" {...field} />
@@ -667,7 +681,7 @@ export default function CuestionarioPage() {
                       <FormItem>
                         <FormLabel>
                           Alrededor de las... tengo una bajada de energía (formato 24h, ej: 15:00 para 3 de la tarde,
-                          12:00 am para 12 de la noche)
+                          00:00 para 12 de la noche)
                         </FormLabel>
                         <FormControl>
                           <Input type="time" {...field} />
@@ -684,7 +698,7 @@ export default function CuestionarioPage() {
                       <FormItem>
                         <FormLabel>
                           En las noches antes de días libres, me acuesto a las... (formato 24h, ej: 15:00 para 3 de la
-                          tarde, 12:00 am para 12 de la noche)
+                          tarde, 00:00 para 12 de la noche)
                         </FormLabel>
                         <FormControl>
                           <Input type="time" {...field} />
