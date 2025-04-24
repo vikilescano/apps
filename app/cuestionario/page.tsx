@@ -433,7 +433,7 @@ export default function CuestionarioPage() {
                     name="minutosPararDespertarLaboral"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Necesito... minutos para despertarme</FormLabel>
+                        <FormLabel>Necesito... minutos para levantarme</FormLabel>
                         <FormControl>
                           <Input type="number" {...field} />
                         </FormControl>
@@ -711,7 +711,7 @@ export default function CuestionarioPage() {
                     name="minutosPararDespertarLibre"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Necesito... minutos para despertarme</FormLabel>
+                        <FormLabel>Necesito... minutos para levantarme</FormLabel>
                         <FormControl>
                           <Input type="number" {...field} />
                         </FormControl>
