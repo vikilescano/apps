@@ -26,7 +26,7 @@ const formSchema = z.object({
   // Días laborables
   horaDespertarLaboral: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Formato de hora inválido (HH:MM)"),
   minutosPararDespertarLaboral: z.coerce.number().min(0),
-  despertarAntesAlarmaLaboral: z.boolean(),
+  despertarAntesAlarmaLaboral: z.enum(["true", "false", "null"]).optional(),
   horaCompletamenteDespiertaLaboral: z
     .string()
     .regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Formato de hora inválido (HH:MM)"),
@@ -39,7 +39,7 @@ const formSchema = z.object({
   // Días libres
   horaSuenoDespetarLibre: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Formato de hora inválido (HH:MM)"),
   horaDespertarLibre: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Formato de hora inválido (HH:MM)"),
-  intentaDormirMasLibre: z.boolean(),
+  intentaDormirMasLibre: z.enum(["true", "false", "null"]).optional(),
   minutosExtraSuenoLibre: z.coerce.number().min(0).optional().nullable(),
   minutosPararDespertarLibre: z.coerce.number().min(0),
   horaCompletamenteDespiertaLibre: z
@@ -82,7 +82,7 @@ export default function CuestionarioPage() {
 
       horaDespertarLaboral: "",
       minutosPararDespertarLaboral: 0,
-      despertarAntesAlarmaLaboral: null, // Cambiado de false a null
+      despertarAntesAlarmaLaboral: undefined, // Cambiado a undefined para que no haya selección por defecto
       horaCompletamenteDespiertaLaboral: "",
       horaEnergiaBajaLaboral: "",
       horaAcostarseLaboral: "",
@@ -92,7 +92,7 @@ export default function CuestionarioPage() {
 
       horaSuenoDespetarLibre: "",
       horaDespertarLibre: "",
-      intentaDormirMasLibre: null,
+      intentaDormirMasLibre: undefined, // Cambiado a undefined para que no haya selección por defecto
       minutosExtraSuenoLibre: null,
       minutosPararDespertarLibre: 0,
       horaCompletamenteDespiertaLibre: "",
@@ -129,19 +129,30 @@ export default function CuestionarioPage() {
         fieldsToValidate = [
           "horaDespertarLaboral",
           "minutosPararDespertarLaboral",
-          "despertarAntesAlarmaLaboral",
           "horaCompletamenteDespiertaLaboral",
           "horaEnergiaBajaLaboral",
           "horaAcostarseLaboral",
           "minutosParaDormirseLaboral",
           "siestaDiaLaboral",
         ]
+        // Asegurarse de que despertarAntesAlarmaLaboral tenga un valor
+        if (!form.getValues("despertarAntesAlarmaLaboral")) {
+          form.setError("despertarAntesAlarmaLaboral", {
+            type: "manual",
+            message: "Por favor selecciona una opción",
+          })
+          toast({
+            title: "Por favor revisá los campos",
+            description: "Hay errores en el formulario que deben ser corregidos.",
+            variant: "destructive",
+          })
+          return
+        }
         break
       case 3:
         fieldsToValidate = [
           "horaSuenoDespetarLibre",
           "horaDespertarLibre",
-          "intentaDormirMasLibre",
           "minutosPararDespertarLibre",
           "horaCompletamenteDespiertaLibre",
           "horaEnergiaBajaLibre",
@@ -149,6 +160,19 @@ export default function CuestionarioPage() {
           "minutosParaDormirseLibre",
           "siestaDiaLibre",
         ]
+        // Asegurarse de que intentaDormirMasLibre tenga un valor
+        if (!form.getValues("intentaDormirMasLibre")) {
+          form.setError("intentaDormirMasLibre", {
+            type: "manual",
+            message: "Por favor selecciona una opción",
+          })
+          toast({
+            title: "Por favor revisá los campos",
+            description: "Hay errores en el formulario que deben ser corregidos.",
+            variant: "destructive",
+          })
+          return
+        }
         break
       case 4:
         fieldsToValidate = [
@@ -166,16 +190,6 @@ export default function CuestionarioPage() {
           "horasAireLibreDiasLibres",
           "minutosAireLibreDiasLibres",
         ]
-        // Asegurarse de que todos los campos del paso 5 sean validados antes de permitir el envío
-        const isValidStep5 = await form.trigger(fieldsToValidate as any)
-        if (!isValidStep5) {
-          toast({
-            title: "Por favor revisá los campos",
-            description: "Hay errores en el formulario que deben ser corregidos.",
-            variant: "destructive",
-          })
-          return
-        }
         break
     }
 
@@ -207,12 +221,25 @@ export default function CuestionarioPage() {
     try {
       setIsSubmitting(true)
 
+      // Convertir los valores de string a boolean o null
+      const processedValues = {
+        ...values,
+        despertarAntesAlarmaLaboral:
+          values.despertarAntesAlarmaLaboral === "true"
+            ? true
+            : values.despertarAntesAlarmaLaboral === "false"
+              ? false
+              : null,
+        intentaDormirMasLibre:
+          values.intentaDormirMasLibre === "true" ? true : values.intentaDormirMasLibre === "false" ? false : null,
+      }
+
       // Calcular los resultados
-      const resultados = calcularResultados(values)
+      const resultados = calcularResultados(processedValues)
 
       // Combinar los valores del formulario con los resultados calculados
       const datosCompletos = {
-        ...values,
+        ...processedValues,
         ...resultados,
       }
 
@@ -423,14 +450,8 @@ export default function CuestionarioPage() {
                         <FormLabel>Regularmente me despierto...</FormLabel>
                         <FormControl>
                           <RadioGroup
-                            onValueChange={(value) => {
-                              if (value === "null") {
-                                field.onChange(null)
-                              } else {
-                                field.onChange(value === "true")
-                              }
-                            }}
-                            value={field.value === null ? "null" : field.value ? "true" : "false"}
+                            onValueChange={field.onChange}
+                            value={field.value || ""}
                             className="flex flex-col space-y-1"
                           >
                             <FormItem className="flex items-center space-x-3 space-y-0">
@@ -633,14 +654,8 @@ export default function CuestionarioPage() {
                         </FormLabel>
                         <FormControl>
                           <RadioGroup
-                            onValueChange={(value) => {
-                              if (value === "null") {
-                                field.onChange(null)
-                              } else {
-                                field.onChange(value === "true")
-                              }
-                            }}
-                            value={field.value === null ? "null" : field.value ? "true" : "false"}
+                            onValueChange={field.onChange}
+                            value={field.value || ""}
                             className="flex flex-col space-y-1"
                           >
                             <FormItem className="flex items-center space-x-3 space-y-0">
@@ -670,7 +685,7 @@ export default function CuestionarioPage() {
                     )}
                   />
 
-                  {form.watch("intentaDormirMasLibre") && (
+                  {form.watch("intentaDormirMasLibre") === "true" && (
                     <FormField
                       control={form.control}
                       name="minutosExtraSuenoLibre"

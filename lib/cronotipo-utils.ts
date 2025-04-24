@@ -65,7 +65,15 @@ export function calcularMSFsc(MSF: number, SDf: number, SDw: number, SOf: number
 
 // Función para calcular el jetlag social (SJL)
 export function calcularSJL(MSF: number, MSW: number): number {
-  return Math.abs(MSF - MSW)
+  // Ajustar para manejar correctamente el cruce de medianoche
+  let diff = Math.abs(MSF - MSW)
+
+  // Si la diferencia es mayor a 12 horas, probablemente estamos calculando en la dirección incorrecta
+  if (diff > 12) {
+    diff = 24 - diff
+  }
+
+  return diff
 }
 
 // Función para determinar la categoría de cronotipo basada en MSFsc
@@ -98,8 +106,13 @@ export function calcularResultados(datos: any) {
   const SDweek = (5 * SDw + 2 * SDf) / 7
 
   // Calcular punto medio del sueño (MS)
-  const MSW = SOw + SDw / 2
-  const MSF = SOf + SDf / 2
+  // Asegurarse de que MSW se calcule correctamente
+  let MSW = SOw + SDw / 2
+  if (MSW >= 24) MSW -= 24
+
+  // Asegurarse de que MSF se calcule correctamente
+  let MSF = SOf + SDf / 2
+  if (MSF >= 24) MSF -= 24
 
   // Calcular MSFsc
   const MSFsc = calcularMSFsc(MSF, SDf, SDw, SOf)
