@@ -166,6 +166,16 @@ export default function CuestionarioPage() {
           "horasAireLibreDiasLibres",
           "minutosAireLibreDiasLibres",
         ]
+        // Asegurarse de que todos los campos del paso 5 sean validados antes de permitir el envío
+        const isValidStep5 = await form.trigger(fieldsToValidate as any)
+        if (!isValidStep5) {
+          toast({
+            title: "Por favor revisá los campos",
+            description: "Hay errores en el formulario que deben ser corregidos.",
+            variant: "destructive",
+          })
+          return
+        }
         break
     }
 
@@ -380,8 +390,8 @@ export default function CuestionarioPage() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>
-                          Tengo que despertarme a las... (formato 24h, ej: 07:00 para 7 de la mañana, 12:00 para 12 del
-                          mediodía)
+                          Tengo que despertarme a las... (formato am/pm, ej: 07:00 am para 7 de la mañana, 12:00 pm para
+                          12 del mediodía)
                         </FormLabel>
                         <FormControl>
                           <Input type="time" {...field} />
@@ -413,8 +423,14 @@ export default function CuestionarioPage() {
                         <FormLabel>Regularmente me despierto...</FormLabel>
                         <FormControl>
                           <RadioGroup
-                            onValueChange={(value) => field.onChange(value === "true")}
-                            value={field.value === null ? "" : field.value ? "true" : "false"}
+                            onValueChange={(value) => {
+                              if (value === "null") {
+                                field.onChange(null)
+                              } else {
+                                field.onChange(value === "true")
+                              }
+                            }}
+                            value={field.value === null ? "null" : field.value ? "true" : "false"}
                             className="flex flex-col space-y-1"
                           >
                             <FormItem className="flex items-center space-x-3 space-y-0">
@@ -429,6 +445,12 @@ export default function CuestionarioPage() {
                               </FormControl>
                               <FormLabel className="font-normal">Con la alarma</FormLabel>
                             </FormItem>
+                            <FormItem className="flex items-center space-x-3 space-y-0">
+                              <FormControl>
+                                <RadioGroupItem value="null" />
+                              </FormControl>
+                              <FormLabel className="font-normal">No uso alarma</FormLabel>
+                            </FormItem>
                           </RadioGroup>
                         </FormControl>
                         <FormMessage />
@@ -442,8 +464,8 @@ export default function CuestionarioPage() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>
-                          A partir de las... estoy completamente despierto/a (formato 24h, ej: 07:00 para 7 de la
-                          mañana, 12:00 para 12 del mediodía)
+                          A partir de las... estoy completamente despierto/a (formato am/pm, ej: 07:00 am para 7 de la
+                          mañana, 12:00 pm para 12 del mediodía)
                         </FormLabel>
                         <FormControl>
                           <Input type="time" {...field} />
@@ -459,8 +481,8 @@ export default function CuestionarioPage() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>
-                          Alrededor de las... tengo una bajada de energía (formato 24h, ej: 15:00 para 3 de la tarde,
-                          18:00 para 6 de la tarde)
+                          Alrededor de las... tengo una bajada de energía (formato am/pm, ej: 03:00 pm para 3 de la
+                          tarde, 06:00 pm para 6 de la tarde)
                         </FormLabel>
                         <FormControl>
                           <Input type="time" {...field} />
@@ -476,8 +498,8 @@ export default function CuestionarioPage() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>
-                          En las noches antes de días laborables, me acuesto a las... (formato 24h, ej: 22:00 para 10 de
-                          la noche, 00:00 para 12 de la madrugada)
+                          En las noches antes de días laborables, me acuesto a las... (formato am/pm, ej: 11:00 pm para
+                          11 de la noche, 12:00 am para 12 de la madrugada)
                         </FormLabel>
                         <FormControl>
                           <Input type="time" {...field} />
@@ -573,8 +595,8 @@ export default function CuestionarioPage() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>
-                          Mi sueño sería dormir hasta las... (formato 24h, ej: 09:00 para 9 de la mañana, 12:00 para 12
-                          del mediodía)
+                          Mi sueño sería dormir hasta las... (formato am/pm, ej: 09:00 am para 9 de la mañana, 12:00 pm
+                          para 12 del mediodía)
                         </FormLabel>
                         <FormControl>
                           <Input type="time" {...field} />
@@ -590,8 +612,8 @@ export default function CuestionarioPage() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>
-                          Normalmente me despierto a las... (formato 24h, ej: 09:00 para 9 de la mañana, 12:00 para 12
-                          del mediodía)
+                          Normalmente me despierto a las... (formato am/pm, ej: 09:00 am para 9 de la mañana, 12:00 pm
+                          para 12 del mediodía)
                         </FormLabel>
                         <FormControl>
                           <Input type="time" {...field} />
@@ -611,8 +633,14 @@ export default function CuestionarioPage() {
                         </FormLabel>
                         <FormControl>
                           <RadioGroup
-                            onValueChange={(value) => field.onChange(value === "true")}
-                            value={field.value === null ? "" : field.value ? "true" : "false"}
+                            onValueChange={(value) => {
+                              if (value === "null") {
+                                field.onChange(null)
+                              } else {
+                                field.onChange(value === "true")
+                              }
+                            }}
+                            value={field.value === null ? "null" : field.value ? "true" : "false"}
                             className="flex flex-col space-y-1"
                           >
                             <FormItem className="flex items-center space-x-3 space-y-0">
@@ -626,6 +654,14 @@ export default function CuestionarioPage() {
                                 <RadioGroupItem value="false" />
                               </FormControl>
                               <FormLabel className="font-normal">No</FormLabel>
+                            </FormItem>
+                            <FormItem className="flex items-center space-x-3 space-y-0">
+                              <FormControl>
+                                <RadioGroupItem value="null" />
+                              </FormControl>
+                              <FormLabel className="font-normal">
+                                No aplica (no uso alarma/nunca me despierto en ese horario)
+                              </FormLabel>
                             </FormItem>
                           </RadioGroup>
                         </FormControl>
@@ -675,8 +711,8 @@ export default function CuestionarioPage() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>
-                          A partir de las... estoy completamente despierto/a (formato 24h, ej: 09:00 para 9 de la
-                          mañana, 12:00 para 12 del mediodía)
+                          A partir de las... estoy completamente despierto/a (formato am/pm, ej: 09:00 am para 9 de la
+                          mañana, 12:00 pm para 12 del mediodía)
                         </FormLabel>
                         <FormControl>
                           <Input type="time" {...field} />
@@ -692,8 +728,8 @@ export default function CuestionarioPage() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>
-                          Alrededor de las... tengo una bajada de energía (formato 24h, ej: 15:00 para 3 de la tarde,
-                          18:00 para 6 de la tarde)
+                          Alrededor de las... tengo una bajada de energía (formato am/pm, ej: 03:00 pm para 3 de la
+                          tarde, 06:00 pm para 6 de la tarde)
                         </FormLabel>
                         <FormControl>
                           <Input type="time" {...field} />
@@ -709,8 +745,8 @@ export default function CuestionarioPage() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>
-                          En las noches antes de días libres, me acuesto a las... (formato 24h, ej: 22:00 para 10 de la
-                          noche, 00:00 para 12 de la madrugada)
+                          En las noches antes de días libres, me acuesto a las... (formato am/pm, ej: 11:00 pm para 11
+                          de la noche, 12:00 am para 12 de la madrugada)
                         </FormLabel>
                         <FormControl>
                           <Input type="time" {...field} />
@@ -1027,7 +1063,7 @@ export default function CuestionarioPage() {
                 </Button>
               ) : (
                 <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? "Enviando..." : "Enviá"}
+                  {isSubmitting ? "Enviando..." : "Ver Resultados"}
                 </Button>
               )}
             </div>

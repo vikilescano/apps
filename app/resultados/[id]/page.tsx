@@ -240,8 +240,12 @@ export default function ResultadosPage() {
                       pantallas) antes de acostarte.
                     </li>
                     <li className="flex items-start gap-2">
-                      <span className="text-primary">•</span> Adaptá tus actividades importantes a tu cronotipo cuando
-                      sea posible.
+                      <span className="text-primary">•</span>{" "}
+                      {resultados.cronotipo.includes("temprano")
+                        ? "Programá tus actividades más importantes y que requieran mayor concentración durante la mañana, cuando tu nivel de alerta es mayor."
+                        : resultados.cronotipo.includes("tardío")
+                          ? "Programá tus actividades más importantes y que requieran mayor concentración durante la tarde o noche, cuando tu nivel de alerta es mayor."
+                          : "Distribuí tus actividades importantes a lo largo del día, aprovechando tu flexibilidad de horarios."}
                     </li>
                   </ul>
                 </div>
