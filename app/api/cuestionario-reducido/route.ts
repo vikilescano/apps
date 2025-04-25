@@ -13,6 +13,9 @@ export async function POST(request: Request) {
     // Mapear los datos del formulario a la estructura de la base de datos
     const respuesta = {
       id,
+      // Agregar campo para identificar el tipo de cuestionario
+      tipo_cuestionario: "reducido",
+
       // Datos demográficos
       edad: data.edad,
       genero: data.genero,

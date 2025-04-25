@@ -224,9 +224,6 @@ export default function CuestionarioReducidoPage() {
         horaEnergiaBajaLibre: "18:00", // Valor por defecto
         siestaDiaLibre: false,
         duracionSiestaDiaLibre: null,
-
-        // Resto de valores
-        ...values,
       }
 
       // Calcular los resultados
@@ -234,11 +231,11 @@ export default function CuestionarioReducidoPage() {
 
       // Combinar los valores del formulario con los resultados calculados
       const datosCompletos = {
-        ...datosParaCalculos,
+        ...values,
         ...resultados,
       }
 
-      // Enviar los datos al servidor
+      // Enviar los datos al servidor - CORREGIDO: usar la ruta correcta
       const response = await fetch("/api/cuestionario-reducido", {
         method: "POST",
         headers: {
@@ -413,7 +410,10 @@ export default function CuestionarioReducidoPage() {
                     name="horaAcostarseLaboral"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Me acuesto a las... (formato HH:MM)</FormLabel>
+                        <FormLabel>
+                          Me acuesto a las... (formato am/pm, ej: 11:00 pm para 11 de la noche, 12:00 am para 12 de la
+                          madrugada)
+                        </FormLabel>
                         <FormControl>
                           <Input type="time" {...field} />
                         </FormControl>
@@ -431,7 +431,10 @@ export default function CuestionarioReducidoPage() {
                     name="horaPreparadoDormirLaboral"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Me preparo para dormir a las... (formato HH:MM)</FormLabel>
+                        <FormLabel>
+                          Me preparo para dormir a las... (formato am/pm, ej: 11:00 pm para 11 de la noche, 12:00 am
+                          para 12 de la madrugada)
+                        </FormLabel>
                         <FormControl>
                           <Input type="time" {...field} />
                         </FormControl>
@@ -459,7 +462,10 @@ export default function CuestionarioReducidoPage() {
                     name="horaDespertarLaboral"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Me despierto a las... (formato HH:MM)</FormLabel>
+                        <FormLabel>
+                          Me despierto a las... (formato am/pm, ej: 07:00 am para 7 de la mañana, 12:00 pm para 12 del
+                          mediodía)
+                        </FormLabel>
                         <FormControl>
                           <Input type="time" {...field} />
                         </FormControl>
@@ -564,7 +570,10 @@ export default function CuestionarioReducidoPage() {
                     name="horaAcostarseLibre"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Me acuesto a las... (formato HH:MM)</FormLabel>
+                        <FormLabel>
+                          Me acuesto a las... (formato am/pm, ej: 11:00 pm para 11 de la noche, 12:00 am para 12 de la
+                          madrugada)
+                        </FormLabel>
                         <FormControl>
                           <Input type="time" {...field} />
                         </FormControl>
@@ -582,7 +591,10 @@ export default function CuestionarioReducidoPage() {
                     name="horaPreparadoDormirLibre"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Me preparo para dormir a las... (formato HH:MM)</FormLabel>
+                        <FormLabel>
+                          Me preparo para dormir a las... (formato am/pm, ej: 11:00 pm para 11 de la noche, 12:00 am
+                          para 12 de la madrugada)
+                        </FormLabel>
                         <FormControl>
                           <Input type="time" {...field} />
                         </FormControl>
@@ -610,7 +622,10 @@ export default function CuestionarioReducidoPage() {
                     name="horaDespertarLibre"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Me despierto a las... (formato HH:MM)</FormLabel>
+                        <FormLabel>
+                          Me despierto a las... (formato am/pm, ej: 07:00 am para 7 de la mañana, 12:00 pm para 12 del
+                          mediodía)
+                        </FormLabel>
                         <FormControl>
                           <Input type="time" {...field} />
                         </FormControl>
