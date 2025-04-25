@@ -46,7 +46,7 @@ export async function POST(request: Request) {
       // Hábitos antes de dormir y preferencias
       actividades_antes_dormir: data.actividadesAntesDormir || [],
       min_lectura_antes_dormir: data.minutosLecturaAntesDormir,
-      min_maximo_lectura: data.minutosMaximoLectura,
+      min_maximo_lectura: 0, // Ya no se usa en el formulario reducido
       prefiere_oscuridad_total: data.prefiereOscuridadTotal,
       despierta_mejor_con_luz: data.despiertaMejorConLuz,
 
