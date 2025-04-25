@@ -10,6 +10,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
     const { data, error } = await supabase.from("respuestas_cronotipo").select("*").eq("id", id).single()
 
     if (error || !data) {
+      console.error("Error al obtener el cuestionario:", error)
       return NextResponse.json({ error: "Cuestionario no encontrado" }, { status: 404 })
     }
 
@@ -17,6 +18,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
     const respuesta = {
       id: data.id,
       createdAt: data.created_at,
+      tipoCuestionario: data.tipo_cuestionario || "general",
 
       // Datos demográficos
       edad: data.edad,
