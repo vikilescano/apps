@@ -289,6 +289,41 @@ export default function AdminPage() {
     }
   }
 
+  const actualizarTiposCuestionario = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch("/api/admin/actualizar-tipos", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error("Error al actualizar los tipos de cuestionario")
+      }
+
+      const data = await response.json()
+
+      toast({
+        title: "Actualización completada",
+        description: `Se actualizaron ${data.totalActualizaciones} registros (${data.actualizacionesGenerales} generales, ${data.actualizacionesReducidas} reducidos)`,
+      })
+
+      // Actualizar la lista de respuestas
+      fetchRespuestas()
+    } catch (error) {
+      console.error("Error:", error)
+      toast({
+        title: "Error",
+        description: "Hubo un problema al actualizar los tipos de cuestionario",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
   if (!isAuthenticated) {
     return (
       <div className="container flex items-center justify-center min-h-screen">
@@ -345,6 +380,9 @@ export default function AdminPage() {
             <Button onClick={downloadCSV} disabled={respuestas.length === 0}>
               <Download className="mr-2 h-4 w-4" />
               Descargar CSV
+            </Button>
+            <Button onClick={actualizarTiposCuestionario} variant="outline">
+              Actualizar tipos de cuestionario
             </Button>
           </div>
         </div>
