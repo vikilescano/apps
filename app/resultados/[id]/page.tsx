@@ -17,16 +17,20 @@ export default function ResultadosPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // Añadir console.log para depuración al inicio de useEffect
   useEffect(() => {
     async function fetchResultados() {
       try {
+        console.log("Fetching resultados para ID:", id)
         const response = await fetch(`/api/cuestionario/${id}`)
 
         if (!response.ok) {
+          console.error("Error en la respuesta:", response.status, response.statusText)
           throw new Error("No se pudieron cargar los resultados")
         }
 
         const data = await response.json()
+        console.log("Datos recibidos:", data)
         setResultados(data)
       } catch (error) {
         console.error("Error:", error)

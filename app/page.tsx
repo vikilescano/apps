@@ -29,9 +29,14 @@ export default function Home() {
             lo que puede ser útil para optimizar tu horario diario y mejorar tu bienestar.
           </p>
         </CardContent>
-        <CardFooter>
-          <Link href="/cuestionario-reducido" className="w-full">
+        <CardFooter className="flex flex-col md:flex-row gap-4">
+          <Link href="/cuestionario" className="w-full md:w-1/2">
             <Button className="w-full">Comenzá el cuestionario</Button>
+          </Link>
+          <Link href="/cuestionario-reducido" className="w-full md:w-1/2">
+            <Button className="w-full" variant="outline">
+              Versión reducida
+            </Button>
           </Link>
         </CardFooter>
       </Card>

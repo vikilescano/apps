@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -217,10 +219,36 @@ export default function CuestionarioPage() {
     }
   }
 
+  // Función personalizada para manejar el envío del formulario
+  const handleSubmit = async (e: React.MouseEvent) => {
+    e.preventDefault()
+
+    // Validar todos los campos del último paso
+    const fieldsToValidate = [
+      "horasAireLibreDiasLaborales",
+      "minutosAireLibreDiasLaborales",
+      "horasAireLibreDiasLibres",
+      "minutosAireLibreDiasLibres",
+    ]
+
+    const isValid = await form.trigger(fieldsToValidate as any)
+
+    if (!isValid) {
+      toast({
+        title: "Por favor revisá los campos",
+        description: "Hay errores en el formulario que deben ser corregidos.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Si la validación es exitosa, ejecutar el envío del formulario
+    setIsSubmitting(true)
+    form.handleSubmit(onSubmit)(e)
+  }
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
-      setIsSubmitting(true)
-
       // Convertir los valores de string a boolean o null
       const processedValues = {
         ...values,
@@ -299,7 +327,7 @@ export default function CuestionarioPage() {
         </div>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          <form onSubmit={(e) => e.preventDefault()} className="space-y-8">
             {step === 1 && (
               <Card>
                 <CardHeader>
@@ -360,26 +388,6 @@ export default function CuestionarioPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
-                      name="provincia"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Provincia</FormLabel>
-                          <FormControl>
-                            <Combobox
-                              options={provinciaOptions}
-                              value={field.value || ""}
-                              onChange={field.onChange}
-                              placeholder="Seleccionar provincia"
-                              emptyMessage="No se encontraron provincias."
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
                       name="pais"
                       render={({ field }) => (
                         <FormItem>
@@ -391,6 +399,26 @@ export default function CuestionarioPage() {
                               onChange={field.onChange}
                               placeholder="Seleccionar país"
                               emptyMessage="No se encontraron países."
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="provincia"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Provincia (si estás en Argentina)</FormLabel>
+                          <FormControl>
+                            <Combobox
+                              options={provinciaOptions}
+                              value={field.value || ""}
+                              onChange={field.onChange}
+                              placeholder="Seleccionar provincia"
+                              emptyMessage="No se encontraron provincias."
                             />
                           </FormControl>
                           <FormMessage />
@@ -987,8 +1015,8 @@ export default function CuestionarioPage() {
                 <CardHeader>
                   <CardTitle>Tiempo al aire libre</CardTitle>
                   <CardDescription>
-                    ¿Cuánto tiempo al día pasás en promedio al aire libre (realmente al aire libre) expuesto a la luz
-                    del día?
+                    ¿Cuánto tiempo al día pasás en promedio al aire libre (realmente al aire libre){" "}
+                    <strong>expuesto a la luz del día</strong>?
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
@@ -1077,7 +1105,7 @@ export default function CuestionarioPage() {
                   Siguiente
                 </Button>
               ) : (
-                <Button type="submit" disabled={isSubmitting}>
+                <Button type="button" onClick={handleSubmit} disabled={isSubmitting}>
                   {isSubmitting ? "Enviando..." : "Ver Resultados"}
                 </Button>
               )}

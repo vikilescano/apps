@@ -11,11 +11,9 @@ export async function POST(request: Request) {
     const id = uuidv4()
 
     // Mapear los datos del formulario a la estructura de la base de datos
+    // Solo incluir campos que sabemos que existen en la tabla
     const respuesta = {
       id,
-      // Agregar campo para identificar el tipo de cuestionario
-      tipo_cuestionario: "reducido",
-
       // Datos demográficos
       edad: data.edad,
       genero: data.genero,
@@ -59,14 +57,6 @@ export async function POST(request: Request) {
       horas_aire_libre_lib: data.horasAireLibreDiasLibres,
       min_aire_libre_lib: data.minutosAireLibreDiasLibres,
 
-      // Datos adicionales del cuestionario reducido
-      hora_preparado_dormir_lab: data.horaPreparadoDormirLaboral,
-      hora_preparado_dormir_lib: data.horaPreparadoDormirLibre,
-      usa_alarma_lib: data.usaAlarmaLibre,
-      razones_no_elegir_sueno: data.razonesNoElegirSueno,
-      razones_no_elegir_sueno_tipos: data.razonesNoElegirSuenoTipos || [],
-      razones_no_elegir_sueno_otros: data.razonesNoElegirSuenoOtros || "",
-
       // Resultados calculados
       msf: data.MSF,
       msf_sc: data.MSFsc,
@@ -78,8 +68,35 @@ export async function POST(request: Request) {
       cronotipo: data.cronotipo,
     }
 
+    // Primero, obtener la estructura de la tabla para ver qué columnas existen
+    const { data: tableInfo, error: tableError } = await supabase.from("respuestas_cronotipo").select("*").limit(1)
+
+    if (tableError) {
+      console.error("Error al obtener información de la tabla:", tableError)
+      return NextResponse.json({ error: "Error al obtener estructura de la tabla" }, { status: 500 })
+    }
+
+    // Si hay datos, usar las claves del primer registro para determinar las columnas existentes
+    let columnas = []
+    if (tableInfo && tableInfo.length > 0) {
+      columnas = Object.keys(tableInfo[0])
+      console.log("Columnas existentes en la tabla:", columnas)
+    }
+
+    // Filtrar el objeto respuesta para incluir solo las columnas que existen
+    const respuestaFiltrada: any = {}
+    Object.keys(respuesta).forEach((key) => {
+      if (columnas.includes(key)) {
+        respuestaFiltrada[key] = respuesta[key as keyof typeof respuesta]
+      } else {
+        console.log(`Columna no encontrada en la tabla: ${key}`)
+      }
+    })
+
+    console.log("Objeto filtrado a insertar:", respuestaFiltrada)
+
     // Guardar en Supabase
-    const { error } = await supabase.from("respuestas_cronotipo").insert(respuesta)
+    const { error } = await supabase.from("respuestas_cronotipo").insert(respuestaFiltrada)
 
     if (error) {
       console.error("Error al guardar en Supabase:", error)
