@@ -14,6 +14,8 @@ export async function GET(request: Request, { params }: { params: { id: string }
       return NextResponse.json({ error: "Cuestionario no encontrado" }, { status: 404 })
     }
 
+    console.log("Datos obtenidos de la base de datos:", data)
+
     // Mapear los datos de la base de datos a la estructura esperada por el frontend
     const respuesta = {
       id: data.id,
@@ -74,6 +76,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
       cronotipo: data.cronotipo,
     }
 
+    console.log("Respuesta formateada:", respuesta)
     return NextResponse.json(respuesta)
   } catch (error) {
     console.error("Error al obtener la respuesta:", error)

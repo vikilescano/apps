@@ -278,7 +278,7 @@ export default function CuestionarioReducidoFormularioPage() {
     <div className="container py-10">
       <div className="max-w-3xl mx-auto">
         <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold">Cuestionario de Cronotipo de Munich (Versión Reducida)</h1>
+          <h1 className="text-3xl font-bold">Cuestionario de Cronotipo de Munich</h1>
           <p className="text-muted-foreground mt-2">
             Paso {step} de {totalSteps}
           </p>
@@ -353,26 +353,6 @@ export default function CuestionarioReducidoFormularioPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
-                      name="provincia"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Provincia</FormLabel>
-                          <FormControl>
-                            <Combobox
-                              options={provinciaOptions}
-                              value={field.value || ""}
-                              onChange={field.onChange}
-                              placeholder="Seleccionar provincia"
-                              emptyMessage="No se encontraron provincias."
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
                       name="pais"
                       render={({ field }) => (
                         <FormItem>
@@ -384,6 +364,26 @@ export default function CuestionarioReducidoFormularioPage() {
                               onChange={field.onChange}
                               placeholder="Seleccionar país"
                               emptyMessage="No se encontraron países."
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="provincia"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Provincia (si estás en Argentina)</FormLabel>
+                          <FormControl>
+                            <Combobox
+                              options={provinciaOptions}
+                              value={field.value || ""}
+                              onChange={field.onChange}
+                              placeholder="Seleccionar provincia"
+                              emptyMessage="No se encontraron provincias."
                             />
                           </FormControl>
                           <FormMessage />
@@ -913,8 +913,8 @@ export default function CuestionarioReducidoFormularioPage() {
                   <div className="space-y-6">
                     <h3 className="text-lg font-medium">Tiempo al aire libre</h3>
                     <p className="text-sm text-muted-foreground">
-                      ¿Cuánto tiempo al día pasás en promedio al aire libre (realmente al aire libre) expuesto a la luz
-                      del día?
+                      ¿Cuánto tiempo al día pasás en promedio al aire libre (realmente al aire libre){" "}
+                      <strong>expuesto a la luz del día</strong>?
                     </p>
 
                     <div>
