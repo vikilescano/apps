@@ -10,6 +10,7 @@ import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Progress } from "@/components/ui/progress"
 import { Clock, Sun, Moon, Calendar, ArrowRight } from "lucide-react"
+import { obtenerRespuestaPorId } from "@/lib/local-storage"
 
 export default function ResultadosPage() {
   const { id } = useParams()
@@ -24,17 +25,12 @@ export default function ResultadosPage() {
         console.log("Buscando resultados para ID:", id)
 
         // Primero verificar si hay resultados guardados localmente
-        const localResultados = localStorage.getItem("cronotipo_resultados")
-        if (localResultados) {
-          const parsedLocalResultados = JSON.parse(localResultados)
-
-          // Si el ID coincide con el de los resultados locales, usar esos datos
-          if (parsedLocalResultados.id === id) {
-            console.log("Usando resultados guardados localmente")
-            setResultados(parsedLocalResultados)
-            setLoading(false)
-            return
-          }
+        const respuestaLocal = obtenerRespuestaPorId(id as string)
+        if (respuestaLocal) {
+          console.log("Usando resultados guardados localmente")
+          setResultados(respuestaLocal)
+          setLoading(false)
+          return
         }
 
         // Verificar si hay resultados en el almacenamiento de sesión
@@ -46,7 +42,35 @@ export default function ResultadosPage() {
           return
         }
 
-        // Si no hay resultados locales o el ID no coincide, mostrar error
+        // Intentar obtener del servidor local
+        try {
+          const response = await fetch(`/api/respuestas-locales/${id}`)
+          if (response.ok) {
+            const data = await response.json()
+            console.log("Usando resultados del servidor local")
+            setResultados(data)
+            setLoading(false)
+            return
+          }
+        } catch (error) {
+          console.warn("No se pudieron obtener resultados del servidor local:", error)
+        }
+
+        // Intentar obtener de Supabase como último recurso
+        try {
+          const response = await fetch(`/api/cuestionario/${id}`)
+          if (response.ok) {
+            const data = await response.json()
+            console.log("Usando resultados de Supabase")
+            setResultados(data)
+            setLoading(false)
+            return
+          }
+        } catch (error) {
+          console.warn("No se pudieron obtener resultados de Supabase:", error)
+        }
+
+        // Si no hay resultados en ninguna parte
         setError("No se encontraron resultados para este ID. Por favor, completa el cuestionario nuevamente.")
         setLoading(false)
       } catch (error) {

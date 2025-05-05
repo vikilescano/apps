@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { toast } from "@/components/ui/use-toast"
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Download, Trash2, Edit, Check, X } from "lucide-react"
+import { Download, Trash2, Edit, Check, X, FileJson } from "lucide-react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,6 +21,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Checkbox } from "@/components/ui/checkbox"
+import { obtenerTodasRespuestas, exportarRespuestasJSON, importarRespuestasJSON } from "@/lib/local-storage"
 
 export default function AdminPage() {
   const [password, setPassword] = useState("")
@@ -31,6 +32,8 @@ export default function AdminPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [editingRow, setEditingRow] = useState<string | null>(null)
   const [editFormData, setEditFormData] = useState<any>({})
+  const [importDialogOpen, setImportDialogOpen] = useState(false)
+  const [importFile, setImportFile] = useState<File | null>(null)
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -67,14 +70,35 @@ export default function AdminPage() {
   const fetchRespuestas = async () => {
     setLoading(true)
     try {
-      const response = await fetch("/api/admin/respuestas")
-
-      if (!response.ok) {
-        throw new Error("No se pudieron cargar las respuestas")
+      // Primero intentar obtener respuestas del servidor local
+      try {
+        const response = await fetch("/api/respuestas-locales")
+        if (response.ok) {
+          const data = await response.json()
+          setRespuestas(data)
+          setLoading(false)
+          return
+        }
+      } catch (error) {
+        console.warn("No se pudieron obtener respuestas del servidor local:", error)
       }
 
-      const data = await response.json()
-      setRespuestas(data)
+      // Si no hay respuestas del servidor, intentar obtener de Supabase
+      try {
+        const response = await fetch("/api/admin/respuestas")
+        if (response.ok) {
+          const data = await response.json()
+          setRespuestas(data)
+          setLoading(false)
+          return
+        }
+      } catch (error) {
+        console.warn("No se pudieron obtener respuestas de Supabase:", error)
+      }
+
+      // Si no hay respuestas de ninguna fuente externa, usar localStorage
+      const respuestasLocales = obtenerTodasRespuestas()
+      setRespuestas(respuestasLocales)
     } catch (error) {
       console.error("Error:", error)
       toast({
@@ -82,104 +106,72 @@ export default function AdminPage() {
         description: "Hubo un problema al cargar las respuestas",
         variant: "destructive",
       })
+
+      // Usar localStorage como último recurso
+      const respuestasLocales = obtenerTodasRespuestas()
+      setRespuestas(respuestasLocales)
     } finally {
       setLoading(false)
     }
   }
 
-  const downloadCSV = () => {
+  const downloadJSON = () => {
     if (respuestas.length === 0) return
 
-    // Definir todas las columnas que queremos incluir en el CSV
-    const columns = [
-      // Identificación y timestamp
-      "id",
-      "created_at",
-
-      // Datos demográficos
-      "edad",
-      "genero",
-      "provincia",
-      "pais",
-
-      // Días laborables
-      "hora_despertar_lab",
-      "min_despertar_lab",
-      "despertar_antes_alarma_lab",
-      "hora_despierto_lab",
-      "hora_energia_baja_lab",
-      "hora_acostar_lab",
-      "min_dormirse_lab",
-      "siesta_lab",
-      "duracion_siesta_lab",
-
-      // Días libres
-      "hora_sueno_despertar_lib",
-      "hora_despertar_lib",
-      "intenta_dormir_mas_lib",
-      "min_extra_sueno_lib",
-      "min_despertar_lib",
-      "hora_despierto_lib",
-      "hora_energia_baja_lib",
-      "hora_acostar_lib",
-      "min_dormirse_lib",
-      "siesta_lib",
-      "duracion_siesta_lib",
-
-      // Hábitos antes de dormir y preferencias
-      "actividades_antes_dormir",
-      "min_lectura_antes_dormir",
-      "min_maximo_lectura",
-      "prefiere_oscuridad_total",
-      "despierta_mejor_con_luz",
-
-      // Tiempo al aire libre
-      "horas_aire_libre_lab",
-      "min_aire_libre_lab",
-      "horas_aire_libre_lib",
-      "min_aire_libre_lib",
-
-      // Resultados calculados
-      "msf",
-      "msf_sc",
-      "sd_w",
-      "sd_f",
-      "sd_week",
-      "so_f",
-      "sjl",
-      "cronotipo",
-    ]
-
-    // Crear la fila de encabezados
-    let csv = columns.join(",") + "\n"
-
-    // Añadir cada fila de datos
-    respuestas.forEach((respuesta) => {
-      const row = columns.map((column) => {
-        const value = respuesta[column]
-
-        // Manejar valores especiales
-        if (value === null || value === undefined) return ""
-        if (typeof value === "boolean") return value ? "true" : "false"
-        if (Array.isArray(value)) return `"${value.join(", ")}"`
-        if (typeof value === "string" && value.includes(",")) return `"${value}"`
-
-        return value
-      })
-
-      csv += row.join(",") + "\n"
-    })
-
-    // Crear un blob y descargar
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
+    const jsonData = exportarRespuestasJSON()
+    const blob = new Blob([jsonData], { type: "application/json" })
     const url = URL.createObjectURL(blob)
     const link = document.createElement("a")
     link.setAttribute("href", url)
-    link.setAttribute("download", `cuestionario-cronotipo-${new Date().toISOString().split("T")[0]}.csv`)
+    link.setAttribute("download", `cuestionario-cronotipo-${new Date().toISOString().split("T")[0]}.json`)
     link.style.visibility = "hidden"
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
+  }
+
+  const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setImportFile(e.target.files[0])
+    }
+  }
+
+  const handleImport = async () => {
+    if (!importFile) return
+
+    try {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        if (e.target?.result) {
+          const jsonData = e.target.result as string
+          const success = importarRespuestasJSON(jsonData)
+
+          if (success) {
+            toast({
+              title: "Importación exitosa",
+              description: "Los datos se han importado correctamente",
+            })
+            fetchRespuestas()
+          } else {
+            toast({
+              title: "Error de importación",
+              description: "El formato del archivo no es válido",
+              variant: "destructive",
+            })
+          }
+        }
+      }
+      reader.readAsText(importFile)
+      setImportDialogOpen(false)
+      setImportFile(null)
+    } catch (error) {
+      console.error("Error al importar:", error)
+      toast({
+        title: "Error",
+        description: "Hubo un problema al importar los datos",
+        variant: "destructive",
+      })
+    }
   }
 
   const toggleRowSelection = (id: string) => {
@@ -195,36 +187,24 @@ export default function AdminPage() {
   }
 
   const handleDeleteSelected = async () => {
-    try {
-      const response = await fetch("/api/admin/respuestas/delete", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ ids: selectedRows }),
-      })
+    // Eliminar las respuestas seleccionadas del localStorage
+    const respuestasActualizadas = respuestas.filter((r) => !selectedRows.includes(r.id))
+    localStorage.setItem("cronotipo_todas_respuestas", JSON.stringify(respuestasActualizadas))
 
-      if (!response.ok) {
-        throw new Error("Error al eliminar las respuestas")
-      }
+    // Eliminar también las entradas individuales
+    selectedRows.forEach((id) => {
+      localStorage.removeItem(`cronotipo_resultados_${id}`)
+    })
 
-      toast({
-        title: "Éxito",
-        description: `Se eliminaron ${selectedRows.length} respuesta(s) correctamente`,
-      })
+    toast({
+      title: "Éxito",
+      description: `Se eliminaron ${selectedRows.length} respuesta(s) correctamente`,
+    })
 
-      // Actualizar la lista de respuestas
-      fetchRespuestas()
-      setSelectedRows([])
-      setIsDeleteDialogOpen(false)
-    } catch (error) {
-      console.error("Error:", error)
-      toast({
-        title: "Error",
-        description: "Hubo un problema al eliminar las respuestas",
-        variant: "destructive",
-      })
-    }
+    // Actualizar la lista de respuestas
+    setRespuestas(respuestasActualizadas)
+    setSelectedRows([])
+    setIsDeleteDialogOpen(false)
   }
 
   const startEditing = (respuesta: any) => {
@@ -257,71 +237,31 @@ export default function AdminPage() {
   }
 
   const saveEditing = async () => {
-    try {
-      const response = await fetch(`/api/admin/respuestas/${editingRow}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(editFormData),
-      })
-
-      if (!response.ok) {
-        throw new Error("Error al actualizar la respuesta")
+    // Actualizar la respuesta en localStorage
+    const respuestasActualizadas = respuestas.map((r) => {
+      if (r.id === editingRow) {
+        return { ...r, ...editFormData }
       }
+      return r
+    })
 
-      toast({
-        title: "Éxito",
-        description: "La respuesta se actualizó correctamente",
-      })
+    localStorage.setItem("cronotipo_todas_respuestas", JSON.stringify(respuestasActualizadas))
 
-      // Actualizar la lista de respuestas
-      fetchRespuestas()
-      setEditingRow(null)
-      setEditFormData({})
-    } catch (error) {
-      console.error("Error:", error)
-      toast({
-        title: "Error",
-        description: "Hubo un problema al actualizar la respuesta",
-        variant: "destructive",
-      })
+    // Actualizar también la entrada individual
+    const respuestaActualizada = respuestasActualizadas.find((r) => r.id === editingRow)
+    if (respuestaActualizada) {
+      localStorage.setItem(`cronotipo_resultados_${editingRow}`, JSON.stringify(respuestaActualizada))
     }
-  }
 
-  const actualizarTiposCuestionario = async () => {
-    try {
-      setLoading(true)
-      const response = await fetch("/api/admin/actualizar-tipos", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      })
+    toast({
+      title: "Éxito",
+      description: "La respuesta se actualizó correctamente",
+    })
 
-      if (!response.ok) {
-        throw new Error("Error al actualizar los tipos de cuestionario")
-      }
-
-      const data = await response.json()
-
-      toast({
-        title: "Actualización completada",
-        description: `Se actualizaron ${data.totalActualizaciones} registros (${data.actualizacionesGenerales} generales, ${data.actualizacionesReducidas} reducidos)`,
-      })
-
-      // Actualizar la lista de respuestas
-      fetchRespuestas()
-    } catch (error) {
-      console.error("Error:", error)
-      toast({
-        title: "Error",
-        description: "Hubo un problema al actualizar los tipos de cuestionario",
-        variant: "destructive",
-      })
-    } finally {
-      setLoading(false)
-    }
+    // Actualizar la lista de respuestas
+    setRespuestas(respuestasActualizadas)
+    setEditingRow(null)
+    setEditFormData({})
   }
 
   if (!isAuthenticated) {
@@ -377,12 +317,13 @@ export default function AdminPage() {
               <Trash2 className="mr-2 h-4 w-4" />
               Borrar seleccionados ({selectedRows.length})
             </Button>
-            <Button onClick={downloadCSV} disabled={respuestas.length === 0}>
+            <Button onClick={downloadJSON} disabled={respuestas.length === 0}>
               <Download className="mr-2 h-4 w-4" />
-              Descargar CSV
+              Exportar JSON
             </Button>
-            <Button onClick={actualizarTiposCuestionario} variant="outline">
-              Actualizar tipos de cuestionario
+            <Button onClick={() => setImportDialogOpen(true)} variant="outline">
+              <FileJson className="mr-2 h-4 w-4" />
+              Importar JSON
             </Button>
           </div>
         </div>
@@ -418,13 +359,13 @@ export default function AdminPage() {
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={12} className="text-center py-8">
+                      <TableCell colSpan={14} className="text-center py-8">
                         Cargando respuestas...
                       </TableCell>
                     </TableRow>
                   ) : respuestas.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={12} className="text-center py-8">
+                      <TableCell colSpan={14} className="text-center py-8">
                         No hay respuestas disponibles
                       </TableCell>
                     </TableRow>
@@ -646,6 +587,27 @@ export default function AdminPage() {
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={handleDeleteSelected} className="bg-destructive text-destructive-foreground">
               Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Diálogo para importar JSON */}
+      <AlertDialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Importar datos</AlertDialogTitle>
+            <AlertDialogDescription>
+              Selecciona un archivo JSON para importar respuestas. Esto añadirá las respuestas a las existentes.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4">
+            <Input type="file" accept=".json" onChange={handleImportFile} />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleImport} disabled={!importFile}>
+              Importar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

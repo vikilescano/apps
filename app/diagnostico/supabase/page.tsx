@@ -4,123 +4,235 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { CheckCircle, XCircle, AlertCircle } from "lucide-react"
-import Link from "next/link"
+import { CheckCircle, XCircle, AlertCircle, RefreshCw, Database, Upload } from "lucide-react"
+import { toast } from "@/components/ui/use-toast"
 
-export default function SupabaseDiagnosticoPage() {
-  const [status, setStatus] = useState<{
-    loading: boolean
-    success?: boolean
-    message?: string
-    error?: string
-    envVars?: any
-    details?: any
-  }>({
-    loading: true,
-  })
+export default function DiagnosticoSupabasePage() {
+  const [diagnostico, setDiagnostico] = useState<any>(null)
+  const [loading, setLoading] = useState(false)
+  const [sincronizando, setSincronizando] = useState(false)
 
-  useEffect(() => {
-    async function checkSupabase() {
-      try {
-        setStatus({ loading: true })
+  const realizarDiagnostico = async () => {
+    setLoading(true)
+    try {
+      const response = await fetch("/api/diagnostico/supabase")
+      const data = await response.json()
+      setDiagnostico(data)
+    } catch (error) {
+      console.error("Error al realizar diagnóstico:", error)
+      toast({
+        title: "Error",
+        description: "Hubo un problema al realizar el diagnóstico",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
 
-        const response = await fetch("/api/diagnostico/test-supabase")
-        const data = await response.json()
+  const sincronizarDatos = async () => {
+    setSincronizando(true)
+    try {
+      const response = await fetch("/api/sincronizar", {
+        method: "POST",
+      })
+      const data = await response.json()
 
-        if (data.success) {
-          setStatus({
-            loading: false,
-            success: true,
-            message: data.message,
-            envVars: data.envVars,
-            details: data,
-          })
-        } else {
-          setStatus({
-            loading: false,
-            success: false,
-            error: data.error,
-            envVars: data.envVars,
-            details: data,
-          })
-        }
-      } catch (error) {
-        setStatus({
-          loading: false,
-          success: false,
-          error: `Error al realizar la prueba: ${error.message}`,
+      if (data.success) {
+        toast({
+          title: "Sincronización completada",
+          description: data.message,
+        })
+      } else {
+        toast({
+          title: "Error de sincronización",
+          description: data.error,
+          variant: "destructive",
         })
       }
+    } catch (error) {
+      console.error("Error al sincronizar datos:", error)
+      toast({
+        title: "Error",
+        description: "Hubo un problema al sincronizar los datos",
+        variant: "destructive",
+      })
+    } finally {
+      setSincronizando(false)
     }
+  }
 
-    checkSupabase()
+  useEffect(() => {
+    realizarDiagnostico()
   }, [])
 
   return (
     <div className="container py-10">
-      <Card className="max-w-3xl mx-auto">
-        <CardHeader>
-          <CardTitle>Diagnóstico de Conexión a Supabase</CardTitle>
-          <CardDescription>Verifica el estado de la conexión a la base de datos</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {status.loading ? (
-            <div className="flex justify-center items-center h-40">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-              <p className="ml-4">Verificando conexión a Supabase...</p>
-            </div>
-          ) : status.success ? (
-            <Alert className="bg-green-50 border-green-200">
-              <CheckCircle className="h-5 w-5 text-green-600" />
-              <AlertTitle className="text-green-800">Conexión exitosa</AlertTitle>
-              <AlertDescription className="text-green-700">{status.message}</AlertDescription>
-            </Alert>
-          ) : (
-            <Alert className="bg-red-50 border-red-200">
-              <XCircle className="h-5 w-5 text-red-600" />
-              <AlertTitle className="text-red-800">Error de conexión</AlertTitle>
-              <AlertDescription className="text-red-700">{status.error}</AlertDescription>
-            </Alert>
-          )}
+      <div className="max-w-4xl mx-auto">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold">Diagnóstico de Supabase</h1>
+          <p className="text-muted-foreground mt-2">
+            Esta herramienta te ayuda a diagnosticar problemas con la conexión a Supabase
+          </p>
+        </div>
 
-          {status.envVars && (
-            <div className="mt-6">
-              <h3 className="text-lg font-medium mb-2">Variables de entorno:</h3>
-              <div className="bg-gray-100 p-4 rounded-md">
-                <pre className="whitespace-pre-wrap text-sm">{JSON.stringify(status.envVars, null, 2)}</pre>
-              </div>
-            </div>
-          )}
+        <div className="grid gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Database className="mr-2 h-5 w-5" />
+                Estado de la conexión
+              </CardTitle>
+              <CardDescription>Verifica si la aplicación puede conectarse a Supabase</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="flex items-center justify-center py-8">
+                  <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
+                  <span className="ml-2">Realizando diagnóstico...</span>
+                </div>
+              ) : diagnostico ? (
+                <div className="space-y-4">
+                  <div className="flex items-start">
+                    <div className="mr-4">
+                      {diagnostico.success ? (
+                        <CheckCircle className="h-6 w-6 text-green-500" />
+                      ) : (
+                        <XCircle className="h-6 w-6 text-red-500" />
+                      )}
+                    </div>
+                    <div>
+                      <h3 className="font-medium">Conexión a Supabase</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {diagnostico.success
+                          ? "La conexión a Supabase está funcionando correctamente"
+                          : `Error de conexión: ${diagnostico.error}`}
+                      </p>
+                    </div>
+                  </div>
 
-          {status.details && (
-            <div className="mt-6">
-              <h3 className="text-lg font-medium mb-2">Detalles adicionales:</h3>
-              <div className="bg-gray-100 p-4 rounded-md overflow-auto max-h-60">
-                <pre className="whitespace-pre-wrap text-sm">{JSON.stringify(status.details, null, 2)}</pre>
-              </div>
-            </div>
-          )}
+                  {diagnostico.success && (
+                    <>
+                      <div className="flex items-start">
+                        <div className="mr-4">
+                          {diagnostico.tableSchemaError ? (
+                            <XCircle className="h-6 w-6 text-red-500" />
+                          ) : (
+                            <CheckCircle className="h-6 w-6 text-green-500" />
+                          )}
+                        </div>
+                        <div>
+                          <h3 className="font-medium">Estructura de la tabla</h3>
+                          <p className="text-sm text-muted-foreground">
+                            {diagnostico.tableSchemaError
+                              ? `Error al obtener la estructura: ${diagnostico.tableSchemaError.message}`
+                              : "La estructura de la tabla es correcta"}
+                          </p>
+                        </div>
+                      </div>
 
-          <Alert className="mt-6">
-            <AlertCircle className="h-5 w-5" />
-            <AlertTitle>Recomendaciones</AlertTitle>
-            <AlertDescription>
-              <ul className="list-disc pl-5 mt-2 space-y-1">
-                <li>Verifica que las variables de entorno de Supabase estén correctamente configuradas.</li>
-                <li>Asegúrate de que la tabla respuestas_cronotipo exista en tu base de datos.</li>
-                <li>Comprueba que el rol de servicio tenga permisos para insertar y leer datos.</li>
-                <li>Revisa los logs del servidor para obtener más detalles sobre posibles errores.</li>
-              </ul>
-            </AlertDescription>
-          </Alert>
-        </CardContent>
-        <CardFooter className="flex justify-between">
-          <Link href="/diagnostico">
-            <Button variant="outline">Volver a Diagnóstico</Button>
-          </Link>
-          <Button onClick={() => window.location.reload()}>Volver a verificar</Button>
-        </CardFooter>
-      </Card>
+                      <div className="flex items-start">
+                        <div className="mr-4">
+                          {diagnostico.insertPermission ? (
+                            <CheckCircle className="h-6 w-6 text-green-500" />
+                          ) : (
+                            <XCircle className="h-6 w-6 text-red-500" />
+                          )}
+                        </div>
+                        <div>
+                          <h3 className="font-medium">Permisos de escritura</h3>
+                          <p className="text-sm text-muted-foreground">
+                            {diagnostico.insertPermission
+                              ? "Tienes permisos para insertar datos en la tabla"
+                              : `Error al insertar datos: ${diagnostico.insertError?.message}`}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start">
+                        <div className="mr-4">
+                          {diagnostico.tableInfo ? (
+                            <CheckCircle className="h-6 w-6 text-green-500" />
+                          ) : (
+                            <AlertCircle className="h-6 w-6 text-yellow-500" />
+                          )}
+                        </div>
+                        <div>
+                          <h3 className="font-medium">Información de la tabla</h3>
+                          <p className="text-sm text-muted-foreground">
+                            {diagnostico.tableInfo
+                              ? `Tabla encontrada: ${diagnostico.tableInfo.table_name}`
+                              : "No se pudo obtener información detallada de la tabla"}
+                          </p>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              ) : (
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>No hay datos</AlertTitle>
+                  <AlertDescription>
+                    No se ha realizado ningún diagnóstico todavía. Haz clic en el botón "Realizar diagnóstico".
+                  </AlertDescription>
+                </Alert>
+              )}
+            </CardContent>
+            <CardFooter className="flex justify-between">
+              <Button onClick={realizarDiagnostico} disabled={loading}>
+                {loading ? (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                    Diagnosticando...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Realizar diagnóstico
+                  </>
+                )}
+              </Button>
+              <Button onClick={sincronizarDatos} disabled={sincronizando || !diagnostico?.success}>
+                {sincronizando ? (
+                  <>
+                    <Upload className="mr-2 h-4 w-4 animate-spin" />
+                    Sincronizando...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Sincronizar datos locales
+                  </>
+                )}
+              </Button>
+            </CardFooter>
+          </Card>
+
+          {diagnostico && !diagnostico.success && (
+            <Card className="border-red-200 bg-red-50">
+              <CardHeader>
+                <CardTitle className="text-red-700">Solución recomendada</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4 text-red-700">
+                  <p>
+                    Se ha detectado un problema con la conexión a Supabase. Mientras se resuelve, la aplicación
+                    utilizará almacenamiento local para guardar las respuestas.
+                  </p>
+                  <p>Recomendaciones para solucionar el problema:</p>
+                  <ul className="list-disc pl-5 space-y-2">
+                    <li>Verifica que las variables de entorno de Supabase estén configuradas correctamente</li>
+                    <li>Comprueba que la tabla "respuestas_cronotipo" exista en tu base de datos</li>
+                    <li>Asegúrate de que tienes los permisos necesarios para acceder a la tabla</li>
+                    <li>Revisa los logs de Supabase para ver si hay algún error específico</li>
+                  </ul>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </div>
     </div>
   )
 }

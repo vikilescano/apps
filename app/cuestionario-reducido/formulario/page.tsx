@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { v4 as uuidv4 } from "uuid"
 import { calcularResultados } from "@/lib/cronotipo-utils"
+import { guardarRespuesta } from "@/lib/local-storage"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -221,13 +222,13 @@ export default function FormularioReducidoPage() {
         despiertaMejorConLuz: formData.despiertaMejorConLuz === "true",
 
         // Actividades antes de dormir
-        actividadesAntesDormir: formData.actividadesAntesDormir,
-        minutosLecturaAntesDormir: Number.parseInt(formData.minutosLecturaAntesDormir || "0") || 0,
+        actividades_antes_dormir: formData.actividadesAntesDormir,
+        min_lectura_antes_dormir: Number.parseInt(formData.minutosLecturaAntesDormir || "0") || 0,
 
-        horasAireLibreDiasLaborales: Number.parseInt(formData.horasAireLibreDiasLaborales || "0") || 0,
-        minutosAireLibreDiasLaborales: Number.parseInt(formData.minutosAireLibreDiasLaborales || "0") || 0,
-        horasAireLibreDiasLibres: Number.parseInt(formData.horasAireLibreDiasLibres || "0") || 0,
-        minutosAireLibreDiasLibres: Number.parseInt(formData.minutosAireLibreDiasLibres || "0") || 0,
+        horas_aire_libre_lab: Number.parseInt(formData.horasAireLibreDiasLaborales || "0") || 0,
+        min_aire_libre_lab: Number.parseInt(formData.minutosAireLibreDiasLaborales || "0") || 0,
+        horas_aire_libre_lib: Number.parseInt(formData.horasAireLibreDiasLibres || "0") || 0,
+        min_aire_libre_lib: Number.parseInt(formData.minutosAireLibreDiasLibres || "0") || 0,
 
         // Incluir resultados calculados
         ...resultados,
@@ -236,16 +237,16 @@ export default function FormularioReducidoPage() {
         tipo_cuestionario: "reducido",
       }
 
-      // Guardar en localStorage
-      localStorage.setItem("cronotipo_resultados", JSON.stringify(datosCompletos))
+      // Guardar en localStorage usando nuestra función
+      guardarRespuesta(datosCompletos)
 
-      // Guardar en sessionStorage con el ID específico
+      // También guardar en sessionStorage para compatibilidad
       sessionStorage.setItem(`cronotipo_resultados_${id}`, JSON.stringify(datosCompletos))
 
-      // Enviar a la API y esperar la respuesta
+      // Intentar guardar en el servidor local
       try {
-        console.log("Enviando datos a la API...")
-        const response = await fetch("/api/cuestionario-reducido", {
+        console.log("Enviando datos a la API local...")
+        const response = await fetch("/api/respuestas-locales", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -253,31 +254,44 @@ export default function FormularioReducidoPage() {
           body: JSON.stringify(datosCompletos),
         })
 
-        if (!response.ok) {
-          throw new Error(`Error en la respuesta de la API: ${response.status}`)
-        }
-
         const responseData = await response.json()
-        console.log("Respuesta de la API:", responseData)
+        console.log("Respuesta de la API local:", responseData)
 
-        if (responseData.supabaseError) {
-          console.warn("Los datos se guardaron localmente pero hubo un error con Supabase:", responseData.supabaseError)
+        if (!responseData.success) {
+          console.warn(
+            "Advertencia: Los datos se guardaron localmente pero hubo un error con la API local:",
+            responseData.error,
+          )
           toast({
             title: "Advertencia",
             description:
-              "Los datos se guardaron localmente pero hubo un problema con la base de datos. Tus resultados están disponibles, pero podrían no aparecer en el panel de administración.",
+              "Los datos se guardaron localmente pero hubo un problema con el servidor. Tus resultados están disponibles, pero podrían no aparecer en el panel de administración.",
             variant: "warning",
           })
         }
       } catch (fetchError) {
-        console.error("Error al enviar datos al servidor:", fetchError)
+        console.error("Error al enviar datos al servidor local:", fetchError)
         toast({
           title: "Advertencia",
           description:
             "Hubo un problema al guardar los datos en el servidor, pero tus resultados están disponibles localmente.",
           variant: "warning",
         })
-        // Continuamos con el flujo aunque haya error en el envío
+      }
+
+      // Intentar guardar en Supabase como respaldo
+      try {
+        console.log("Intentando guardar en Supabase como respaldo...")
+        fetch("/api/cuestionario-reducido", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(datosCompletos),
+        }).catch((e) => console.log("Error al guardar en Supabase (ignorado):", e))
+      } catch (supabaseError) {
+        // Ignorar errores de Supabase, ya que estamos usando almacenamiento local
+        console.log("Error al guardar en Supabase (ignorado):", supabaseError)
       }
 
       // Mostrar mensaje de éxito
@@ -305,9 +319,13 @@ export default function FormularioReducidoPage() {
           horaAcostarseLibre: formData.horaAcostarseLibre,
           horaDespertarLibre: formData.horaDespertarLibre,
           cronotipo: "No calculado debido a un error",
+          tipo_cuestionario: "reducido",
         }
 
-        localStorage.setItem("cronotipo_resultados", JSON.stringify(resultadosBasicos))
+        // Guardar usando nuestra función
+        guardarRespuesta(resultadosBasicos)
+
+        // También guardar en sessionStorage para compatibilidad
         sessionStorage.setItem(`cronotipo_resultados_${emergencyId}`, JSON.stringify(resultadosBasicos))
 
         toast({

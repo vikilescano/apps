@@ -61,7 +61,9 @@
     "@vercel/kv": "latest",
     "d3": "latest",
     "uuid": "latest",
-    "@supabase/supabase-js": "latest"
+    "@supabase/supabase-js": "latest",
+    "fs": "latest",
+    "path": "latest"
   },
   "devDependencies": {
     "@types/node": "^22",
