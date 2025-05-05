@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { v4 as uuidv4 } from "uuid"
-import { createServerSupabaseClient } from "@/lib/supabase"
+import { guardarRespuesta } from "@/lib/guardar-respuesta"
 
 export async function POST(request: Request) {
   try {
@@ -12,7 +12,7 @@ export async function POST(request: Request) {
     const id = data.id || uuidv4()
     console.log("API: ID generado o recibido:", id)
 
-    // Preparar la respuesta para guardar en Supabase
+    // Preparar la respuesta para guardar
     const respuesta = {
       id,
       tipo_cuestionario: "reducido",
@@ -80,55 +80,24 @@ export async function POST(request: Request) {
       tipo_razones_no_elegir_sueno: data.tipoRazonesNoElegirSueno,
     }
 
-    // Intentar guardar en Supabase
-    try {
-      console.log("API: Intentando guardar en Supabase")
-      const supabase = createServerSupabaseClient()
+    // Guardar la respuesta usando nuestra función mejorada
+    const resultado = await guardarRespuesta(respuesta)
 
-      // Verificar la conexión a Supabase
-      const { data: testData, error: testError } = await supabase.from("respuestas_cronotipo").select("count").limit(1)
-      if (testError) {
-        console.error("API: Error al verificar la conexión a Supabase:", testError)
-        return NextResponse.json({
-          id,
-          success: false,
-          localOnly: true,
-          data: respuesta,
-          supabaseError: `Error de conexión: ${testError.message}`,
-        })
-      }
-
-      console.log("API: Conexión a Supabase verificada, insertando datos...")
-
-      // Insertar los datos
-      const { error } = await supabase.from("respuestas_cronotipo").insert(respuesta)
-
-      if (error) {
-        console.error("API: Error al guardar en Supabase:", error)
-        // Aunque haya error, seguimos para devolver los datos al cliente
-        return NextResponse.json({
-          id,
-          success: true,
-          localOnly: true,
-          data: respuesta,
-          supabaseError: error.message,
-        })
-      }
-
-      console.log("API: Datos guardados correctamente en Supabase")
+    if (resultado.success) {
+      console.log("API: Datos guardados correctamente")
       return NextResponse.json({
         id,
         success: true,
+        servidorOk: resultado.servidorOk,
+        supabaseOk: resultado.supabaseOk,
         data: respuesta,
       })
-    } catch (supabaseError) {
-      console.error("API: Error al conectar con Supabase:", supabaseError)
+    } else {
+      console.error("API: Error al guardar los datos")
       return NextResponse.json({
         id,
-        success: true,
-        localOnly: true,
-        data: respuesta,
-        supabaseError: supabaseError.message,
+        success: false,
+        error: "No se pudieron guardar los datos en ninguna ubicación",
       })
     }
   } catch (error) {
@@ -138,11 +107,10 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         id: emergencyId,
-        success: true,
-        localOnly: true,
+        success: false,
         error: `Error al procesar la solicitud: ${error.message}`,
       },
-      { status: 200 }, // Devolver 200 para que el cliente pueda continuar
+      { status: 500 },
     )
   }
 }
