@@ -1,15 +1,14 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { createClientSupabaseClient } from "@/lib/supabase"
+import { Button } from "@/components/ui/button"
 
-export default function DiagnosticoRLS() {
-  const [status, setStatus] = useState("Verificando...")
-  const [isRLSEnabled, setIsRLSEnabled] = useState(false)
-  const [policies, setPolicies] = useState([])
+export default function DiagnosticoRLSPage() {
+  const [rlsStatus, setRlsStatus] = useState<{ enabled: boolean; policies: any[] } | null>(null)
   const [loading, setLoading] = useState(true)
   const [applying, setApplying] = useState(false)
-  const [error, setError] = useState(null)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
 
   useEffect(() => {
     checkRLSStatus()
@@ -18,39 +17,21 @@ export default function DiagnosticoRLS() {
   async function checkRLSStatus() {
     try {
       setLoading(true)
-      const supabase = createClientSupabaseClient()
+      setError(null)
 
-      // Verificar si RLS está habilitado
-      const { data: rlsData, error: rlsError } = await supabase.rpc("check_rls_status", {
-        table_name: "respuestas_cronotipo",
-      })
+      const response = await fetch("/api/diagnostico/rls")
+      const data = await response.json()
 
-      if (rlsError) {
-        console.error("Error al verificar RLS:", rlsError)
-        setStatus("Error al verificar el estado de RLS")
-        setError(rlsError.message)
-        return
-      }
-
-      setIsRLSEnabled(rlsData?.is_rls_enabled || false)
-
-      // Verificar políticas existentes
-      const { data: policiesData, error: policiesError } = await supabase.rpc("get_table_policies", {
-        table_name: "respuestas_cronotipo",
-      })
-
-      if (policiesError) {
-        console.error("Error al obtener políticas:", policiesError)
-        setError(policiesError.message)
+      if (data.success) {
+        setRlsStatus({
+          enabled: data.rls_enabled,
+          policies: data.policies || [],
+        })
       } else {
-        setPolicies(policiesData || [])
+        setError(data.error || "Error al verificar el estado de RLS")
       }
-
-      setStatus(rlsData?.is_rls_enabled ? "RLS está habilitado" : "RLS no está habilitado")
     } catch (error) {
-      console.error("Error al verificar RLS:", error)
-      setStatus("Error al verificar RLS")
-      setError(error.message)
+      setError("Error al verificar el estado de RLS: " + String(error))
     } finally {
       setLoading(false)
     }
@@ -59,74 +40,24 @@ export default function DiagnosticoRLS() {
   async function applyRLS() {
     try {
       setApplying(true)
-      const supabase = createClientSupabaseClient()
+      setError(null)
+      setSuccess(null)
 
-      // Habilitar RLS
-      const { error: enableError } = await supabase.rpc("enable_rls", {
-        table_name: "respuestas_cronotipo",
+      const response = await fetch("/api/diagnostico/aplicar-rls", {
+        method: "POST",
       })
 
-      if (enableError) {
-        console.error("Error al habilitar RLS:", enableError)
-        setError(enableError.message)
-        return
+      const data = await response.json()
+
+      if (data.success) {
+        setSuccess("RLS aplicado correctamente")
+        // Actualizar el estado después de aplicar RLS
+        await checkRLSStatus()
+      } else {
+        setError(data.error || "Error al aplicar RLS")
       }
-
-      // Crear políticas necesarias
-      const policies = [
-        {
-          name: "Permitir inserciones a usuarios autenticados",
-          operation: "INSERT",
-          role: "authenticated",
-          using: "true",
-          check: "true",
-        },
-        {
-          name: "Permitir inserciones anónimas",
-          operation: "INSERT",
-          role: "anon",
-          using: "true",
-          check: "true",
-        },
-        {
-          name: "Permitir lectura a usuarios autenticados",
-          operation: "SELECT",
-          role: "authenticated",
-          using: "true",
-          check: null,
-        },
-        {
-          name: "Permitir todas las operaciones al servicio",
-          operation: "ALL",
-          role: "service_role",
-          using: "true",
-          check: "true",
-        },
-      ]
-
-      for (const policy of policies) {
-        const { error } = await supabase.rpc("create_policy", {
-          table_name: "respuestas_cronotipo",
-          policy_name: policy.name,
-          operation: policy.operation,
-          role: policy.role,
-          using_expr: policy.using,
-          check_expr: policy.check,
-        })
-
-        if (error) {
-          console.error(`Error al crear política ${policy.name}:`, error)
-          // Continuar con las demás políticas incluso si hay error
-        }
-      }
-
-      // Verificar el estado actualizado
-      await checkRLSStatus()
-      setStatus("RLS aplicado correctamente")
     } catch (error) {
-      console.error("Error al aplicar RLS:", error)
-      setStatus("Error al aplicar RLS")
-      setError(error.message)
+      setError("Error al aplicar RLS: " + String(error))
     } finally {
       setApplying(false)
     }
@@ -136,67 +67,82 @@ export default function DiagnosticoRLS() {
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">Diagnóstico de Row Level Security (RLS)</h1>
 
-      <div className="bg-white shadow rounded p-4 mb-4">
+      <div className="bg-white shadow rounded p-4 mb-6">
         <h2 className="text-xl font-semibold mb-2">Estado de RLS</h2>
-        <p className="mb-2">
-          <span className="font-medium">Estado actual:</span>{" "}
-          <span className={isRLSEnabled ? "text-green-600" : "text-red-600"}>
-            {loading ? "Verificando..." : isRLSEnabled ? "Habilitado" : "No habilitado"}
-          </span>
-        </p>
 
-        {!loading && !isRLSEnabled && (
-          <button
-            onClick={applyRLS}
-            disabled={applying}
-            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50"
-          >
-            {applying ? "Aplicando..." : "Aplicar RLS"}
-          </button>
-        )}
-
-        {error && (
-          <div className="mt-2 p-2 bg-red-100 text-red-700 rounded">
-            <p className="font-medium">Error:</p>
-            <p className="text-sm">{error}</p>
+        {loading ? (
+          <p>Verificando estado de RLS...</p>
+        ) : error ? (
+          <div className="text-red-600">
+            <p>Error: {error}</p>
+          </div>
+        ) : (
+          <div>
+            <p className="mb-2">
+              <span className="font-medium">Estado actual: </span>
+              <span className={rlsStatus?.enabled ? "text-green-600" : "text-red-600"}>
+                {rlsStatus?.enabled ? "Habilitado" : "No habilitado"}
+              </span>
+            </p>
           </div>
         )}
       </div>
 
-      {!loading && (
-        <div className="bg-white shadow rounded p-4">
-          <h2 className="text-xl font-semibold mb-2">Políticas existentes</h2>
+      <div className="bg-white shadow rounded p-4 mb-6">
+        <h2 className="text-xl font-semibold mb-2">Aplicar RLS</h2>
 
-          {policies.length === 0 ? (
-            <p className="text-gray-600">No hay políticas configuradas.</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full bg-white">
-                <thead>
-                  <tr>
-                    <th className="py-2 px-4 border-b">Nombre</th>
-                    <th className="py-2 px-4 border-b">Operación</th>
-                    <th className="py-2 px-4 border-b">Rol</th>
-                    <th className="py-2 px-4 border-b">Using</th>
-                    <th className="py-2 px-4 border-b">Check</th>
+        <Button
+          onClick={applyRLS}
+          disabled={applying || (rlsStatus?.enabled && rlsStatus?.policies.length > 0)}
+          className="mb-2"
+        >
+          {applying ? "Aplicando..." : "Aplicar RLS"}
+        </Button>
+
+        {success && (
+          <div className="text-green-600 mt-2">
+            <p>{success}</p>
+          </div>
+        )}
+
+        {error && (
+          <div className="text-red-600 mt-2">
+            <p>Error:</p>
+            <p>{error}</p>
+          </div>
+        )}
+      </div>
+
+      <div className="bg-white shadow rounded p-4">
+        <h2 className="text-xl font-semibold mb-2">Políticas existentes</h2>
+
+        {loading ? (
+          <p>Cargando políticas...</p>
+        ) : rlsStatus?.policies.length ? (
+          <div className="overflow-x-auto">
+            <table className="min-w-full bg-white">
+              <thead>
+                <tr>
+                  <th className="py-2 px-4 border-b">Nombre</th>
+                  <th className="py-2 px-4 border-b">Operación</th>
+                  <th className="py-2 px-4 border-b">Rol</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rlsStatus.policies.map((policy, index) => (
+                  <tr key={index}>
+                    <td className="py-2 px-4 border-b">{policy.policyname}</td>
+                    <td className="py-2 px-4 border-b">{policy.cmd}</td>
+                    <td className="py-2 px-4 border-b">{policy.roles}</td>
                   </tr>
-                </thead>
-                <tbody>
-                  {policies.map((policy, index) => (
-                    <tr key={index} className={index % 2 === 0 ? "bg-gray-50" : ""}>
-                      <td className="py-2 px-4 border-b">{policy.policyname}</td>
-                      <td className="py-2 px-4 border-b">{policy.operation}</td>
-                      <td className="py-2 px-4 border-b">{policy.role}</td>
-                      <td className="py-2 px-4 border-b">{policy.using || "-"}</td>
-                      <td className="py-2 px-4 border-b">{policy.check || "-"}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      )}
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p>No hay políticas configuradas.</p>
+        )}
+      </div>
     </div>
   )
 }

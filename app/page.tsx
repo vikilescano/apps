@@ -28,7 +28,7 @@ export default function HomePage() {
           </p>
         </CardContent>
         <CardFooter>
-          <Link href="/cuestionario-reducido" className="w-full">
+          <Link href="/cuestionario-reducido/formulario" className="w-full">
             <Button className="w-full">Comenzar cuestionario</Button>
           </Link>
         </CardFooter>

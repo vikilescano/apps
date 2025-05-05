@@ -5,12 +5,10 @@ export async function GET() {
   try {
     const supabase = createServerSupabaseClient()
 
-    // Verificar si RLS está habilitado
-    const { data: rlsData, error: rlsError } = await supabase
-      .from("pg_tables")
-      .select("rowsecurity")
-      .eq("tablename", "respuestas_cronotipo")
-      .single()
+    // Verificar si RLS está habilitado usando la nueva función
+    const { data: rlsData, error: rlsError } = await supabase.rpc("check_rls_status", {
+      table_name: "respuestas_cronotipo",
+    })
 
     if (rlsError) {
       console.error("Error al verificar RLS:", rlsError)
@@ -21,11 +19,10 @@ export async function GET() {
       })
     }
 
-    // Obtener políticas de RLS
-    const { data: policiesData, error: policiesError } = await supabase
-      .from("pg_policies")
-      .select("*")
-      .eq("tablename", "respuestas_cronotipo")
+    // Obtener políticas de RLS usando la nueva función
+    const { data: policiesData, error: policiesError } = await supabase.rpc("get_table_policies", {
+      table_name: "respuestas_cronotipo",
+    })
 
     if (policiesError) {
       console.error("Error al obtener políticas:", policiesError)
@@ -33,7 +30,7 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
-      rls_enabled: rlsData?.rowsecurity || false,
+      rls_enabled: rlsData?.is_rls_enabled || false,
       policies: policiesData || [],
     })
   } catch (error) {

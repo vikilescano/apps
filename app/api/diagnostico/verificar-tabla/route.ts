@@ -1,134 +1,94 @@
 import { NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
+import { createServerSupabaseClient } from "@/lib/supabase"
 
 export async function GET() {
   try {
-    const supabase = createClient()
-    const resultados = {
-      conexion: { success: false, message: "", error: null },
-      estructura: { success: false, message: "", error: null },
-      permisos: { success: false, message: "", error: null },
-      informacion: { success: false, message: "", error: null },
-    }
+    const supabase = createServerSupabaseClient()
 
-    // 1. Verificar conexión
-    try {
-      const { data: version, error: versionError } = await supabase.rpc("version")
-      if (versionError) throw versionError
-      resultados.conexion = {
-        success: true,
-        message: "Conexión a Supabase establecida correctamente",
-        error: null,
-      }
-    } catch (error) {
-      resultados.conexion = {
+    // Verificar si la tabla existe
+    const { data: tablesData, error: tablesError } = await supabase
+      .from("information_schema.tables")
+      .select("table_name")
+      .eq("table_schema", "public")
+      .eq("table_name", "respuestas_cronotipo")
+
+    if (tablesError) {
+      return NextResponse.json({
         success: false,
-        message: "Error al conectar con Supabase",
-        error: String(error),
-      }
-      // Si no hay conexión, devolver resultados inmediatamente
-      return NextResponse.json(resultados)
-    }
-
-    // 2. Verificar estructura de la tabla
-    try {
-      const { data: estructura, error: estructuraError } = await supabase.rpc("get_table_schema", {
-        p_table_name: "respuestas_cronotipo",
+        error: `Error al verificar la tabla: ${tablesError.message}`,
       })
-
-      if (estructuraError) throw estructuraError
-
-      resultados.estructura = {
-        success: true,
-        message: "Estructura de la tabla obtenida correctamente",
-        data: estructura,
-        error: null,
-      }
-    } catch (error) {
-      resultados.estructura = {
-        success: false,
-        message: "Error al obtener la estructura",
-        error: String(error),
-      }
     }
 
-    // 3. Verificar permisos de escritura
-    try {
-      // Datos de prueba para insertar
-      const datosTest = {
-        edad: 30,
-        genero: "test",
-        cronotipo: "test",
-        msf_sc: 4.5,
-        sjl: 1.0,
-      }
-
-      // Insertar datos de prueba
-      const { data: insertData, error: insertError } = await supabase
-        .from("respuestas_cronotipo")
-        .insert([datosTest])
-        .select()
-
-      if (insertError) throw insertError
-
-      // Si llegamos aquí, la inserción fue exitosa
-      resultados.permisos = {
-        success: true,
-        message: "Permisos de escritura verificados correctamente",
-        data: insertData,
-        error: null,
-      }
-
-      // Eliminar el registro de prueba
-      if (insertData && insertData.length > 0) {
-        await supabase.from("respuestas_cronotipo").delete().eq("id", insertData[0].id)
-      }
-    } catch (error) {
-      resultados.permisos = {
+    if (!tablesData || tablesData.length === 0) {
+      return NextResponse.json({
         success: false,
-        message: "Error al insertar datos",
-        error: String(error),
-      }
+        error: "La tabla respuestas_cronotipo no existe",
+      })
     }
 
-    // 4. Obtener información detallada de la tabla
-    try {
-      const { data: tablaInfo, error: tablaError } = await supabase.from("respuestas_cronotipo").select("*").limit(1)
+    // Obtener la estructura de la tabla usando la nueva función
+    const { data: estructura, error: estructuraError } = await supabase.rpc("get_table_schema", {
+      p_table_name: "respuestas_cronotipo",
+    })
 
-      if (tablaError) throw tablaError
-
-      // Contar registros
-      const { count, error: countError } = await supabase
-        .from("respuestas_cronotipo")
-        .select("*", { count: "exact", head: true })
-
-      if (countError) throw countError
-
-      resultados.informacion = {
-        success: true,
-        message: "Información de la tabla obtenida correctamente",
-        count: count,
-        columnas: tablaInfo && tablaInfo.length > 0 ? Object.keys(tablaInfo[0]).length : 0,
-        error: null,
-      }
-    } catch (error) {
-      resultados.informacion = {
+    if (estructuraError) {
+      return NextResponse.json({
         success: false,
-        message: "No se pudo obtener información detallada de la tabla",
-        error: String(error),
-      }
+        error: `Error al obtener la estructura: ${estructuraError.message}`,
+        tableInfo: null,
+      })
     }
 
-    return NextResponse.json(resultados)
+    // Intentar insertar datos de prueba
+    const testData = {
+      id: "00000000-0000-0000-0000-000000000000",
+      created_at: new Date().toISOString(),
+      edad: 30,
+      genero: "test",
+      provincia: "test",
+      pais: "test",
+      hora_despertar_lab: "08:00",
+      min_despertar_lab: 10,
+      hora_acostar_lab: "23:00",
+      min_dormirse_lab: 15,
+      hora_despertar_lib: "09:00",
+      min_despertar_lib: 10,
+      hora_acostar_lib: "00:00",
+      min_dormirse_lib: 15,
+      msf: 4.5,
+      msf_sc: 4.2,
+      sd_w: 7.5,
+      sd_f: 8.0,
+      sd_week: 7.7,
+      so_f: 0.5,
+      sjl: 1.0,
+      cronotipo: "Intermedio",
+    }
+
+    // Intentar insertar datos de prueba
+    const { error: insertError } = await supabase.from("respuestas_cronotipo").upsert(testData, { onConflict: "id" })
+
+    if (insertError) {
+      return NextResponse.json({
+        success: false,
+        error: `Error al insertar datos de prueba: ${insertError.message}`,
+        tableInfo: estructura,
+      })
+    }
+
+    // Eliminar los datos de prueba
+    await supabase.from("respuestas_cronotipo").delete().eq("id", "00000000-0000-0000-0000-000000000000")
+
+    return NextResponse.json({
+      success: true,
+      tabla_existe: true,
+      insercion_ok: true,
+      tableInfo: estructura,
+    })
   } catch (error) {
-    console.error("Error general:", error)
-    return NextResponse.json(
-      {
-        success: false,
-        message: "Error general al verificar la tabla",
-        error: String(error),
-      },
-      { status: 500 },
-    )
+    return NextResponse.json({
+      success: false,
+      error: `Error general: ${String(error)}`,
+    })
   }
 }
