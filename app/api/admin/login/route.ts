@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { cookies } from "next/headers"
 
 // Contraseña de administrador (en producción, usar variables de entorno)
-const ADMIN_PASSWORD = "admin123" // Cambiar por una contraseña segura
+const ADMIN_PASSWORD = "rcm140" // Restaurada la contraseña original
 
 export async function POST(request: Request) {
   try {
@@ -25,7 +25,7 @@ export async function POST(request: Request) {
     }
 
     // Iniciar sesión
-    if (action === "login") {
+    if (action === "login" || !action) {
       if (password === ADMIN_PASSWORD) {
         // Establecer cookie de autenticación (24 horas)
         cookies().set("admin_authenticated", "true", { maxAge: 60 * 60 * 24 })
