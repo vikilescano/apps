@@ -473,6 +473,7 @@ export default function AdminPage() {
                                 <option value="">-</option>
                                 <option value="femenino">Femenino</option>
                                 <option value="masculino">Masculino</option>
+                                <option value="otro">Otro</option>
                               </select>
                             </TableCell>
                             <TableCell>
@@ -580,19 +581,26 @@ export default function AdminPage() {
                             <TableCell>{respuesta.pais || "-"}</TableCell>
                             <TableCell>{respuesta.cronotipo}</TableCell>
                             <TableCell>
-                              {Math.floor(respuesta.msf_sc)}:
-                              {Math.round((respuesta.msf_sc % 1) * 60)
-                                .toString()
-                                .padStart(2, "0")}
+                              {respuesta.msf_sc
+                                ? `${Math.floor(respuesta.msf_sc)}:${Math.round((respuesta.msf_sc % 1) * 60)
+                                    .toString()
+                                    .padStart(2, "0")}`
+                                : "-"}
                             </TableCell>
                             <TableCell>
-                              {Math.floor(respuesta.sjl)}h {Math.round((respuesta.sjl % 1) * 60)}min
+                              {respuesta.sjl
+                                ? `${Math.floor(respuesta.sjl)}h ${Math.round((respuesta.sjl % 1) * 60)}min`
+                                : "-"}
                             </TableCell>
                             <TableCell>
-                              {respuesta.horas_aire_libre_lab || 0}h {respuesta.min_aire_libre_lab || 0}m
+                              {respuesta.horas_aire_libre_lab || respuesta.min_aire_libre_lab
+                                ? `${respuesta.horas_aire_libre_lab || 0}h ${respuesta.min_aire_libre_lab || 0}m`
+                                : "-"}
                             </TableCell>
                             <TableCell>
-                              {respuesta.horas_aire_libre_lib || 0}h {respuesta.min_aire_libre_lib || 0}m
+                              {respuesta.horas_aire_libre_lib || respuesta.min_aire_libre_lib
+                                ? `${respuesta.horas_aire_libre_lib || 0}h ${respuesta.min_aire_libre_lib || 0}m`
+                                : "-"}
                             </TableCell>
                             <TableCell>
                               <div className="flex gap-1">
