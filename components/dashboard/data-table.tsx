@@ -6,16 +6,17 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import type { RespuestaCronotipo } from "@/lib/types"
 import { describirCronotipo } from "@/lib/utils"
+import { useRouter } from "next/navigation"
 
 interface DataTableProps {
   data: RespuestaCronotipo[]
-  onRowClick?: (id: string) => void
 }
 
-export function DataTable({ data, onRowClick }: DataTableProps) {
+export function DataTable({ data }: DataTableProps) {
   const [searchTerm, setSearchTerm] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
+  const router = useRouter()
 
   // Filtrar datos según término de búsqueda
   const filteredData = data.filter(
@@ -29,6 +30,12 @@ export function DataTable({ data, onRowClick }: DataTableProps) {
   // Paginar datos
   const totalPages = Math.ceil(filteredData.length / itemsPerPage)
   const paginatedData = filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+
+  // Manejar clic en fila
+  const handleRowClick = (id: string) => {
+    console.log(`Clicked row with ID: ${id}`)
+    router.push(`/dashboard/${id}`)
+  }
 
   return (
     <div className="space-y-4">
@@ -78,8 +85,8 @@ export function DataTable({ data, onRowClick }: DataTableProps) {
               paginatedData.map((item) => (
                 <TableRow
                   key={item.id}
-                  onClick={() => onRowClick && onRowClick(item.id)}
-                  className={onRowClick ? "cursor-pointer hover:bg-muted" : ""}
+                  onClick={() => handleRowClick(item.id)}
+                  className="cursor-pointer hover:bg-muted"
                 >
                   <TableCell>{new Date(item.created_at).toLocaleDateString()}</TableCell>
                   <TableCell>{item.edad}</TableCell>

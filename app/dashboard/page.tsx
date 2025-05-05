@@ -69,7 +69,7 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-1 gap-6">
         <h2 className="text-2xl font-bold">Datos Individuales</h2>
         <Suspense fallback={<div>Cargando datos...</div>}>
-          <DataTable data={data} onRowClick={(id) => console.log(`Clicked row with ID: ${id}`)} />
+          <DataTable data={data} />
         </Suspense>
       </div>
     </div>
