@@ -15,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import Link from "next/link"
 import { Combobox } from "@/components/ui/combobox"
 import { provinciasArgentina, paises } from "@/lib/location-data"
+import { Checkbox } from "@/components/ui/checkbox"
 
 export default function FormularioReducidoPage() {
   const router = useRouter()
@@ -52,7 +53,7 @@ export default function FormularioReducidoPage() {
     despiertaMejorConLuz: "",
 
     // Actividades antes de dormir
-    actividadesAntesDormir: "",
+    actividadesAntesDormir: [] as string[],
     minutosLecturaAntesDormir: "0",
 
     // Tiempo al aire libre
@@ -700,33 +701,45 @@ export default function FormularioReducidoPage() {
                   <Label>
                     ¿Qué actividades realizas antes de dormir? <span className="text-gray-500 text-sm">(opcional)</span>
                   </Label>
-                  <RadioGroup
-                    value={formData.actividadesAntesDormir}
-                    onValueChange={(value) => handleRadioChange("actividadesAntesDormir", value)}
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="leer" id="act-leer" />
-                      <Label htmlFor="act-leer">Leer</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="pantallas" id="act-pantallas" />
-                      <Label htmlFor="act-pantallas">Usar pantallas (celular, TV, computadora)</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="musica" id="act-musica" />
-                      <Label htmlFor="act-musica">Escuchar música</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="otras" id="act-otras" />
-                      <Label htmlFor="act-otras">Otras actividades</Label>
-                    </div>
-                  </RadioGroup>
+                  <div className="space-y-2">
+                    {["leer", "pantallas", "musica", "otras"].map((actividad) => (
+                      <div key={actividad} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`act-${actividad}`}
+                          checked={formData.actividadesAntesDormir.includes(actividad)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setFormData((prev) => ({
+                                ...prev,
+                                actividadesAntesDormir: [...prev.actividadesAntesDormir, actividad],
+                              }))
+                            } else {
+                              setFormData((prev) => ({
+                                ...prev,
+                                actividadesAntesDormir: prev.actividadesAntesDormir.filter((a) => a !== actividad),
+                              }))
+                            }
+                          }}
+                        />
+                        <Label htmlFor={`act-${actividad}`}>
+                          {actividad === "leer"
+                            ? "Leer"
+                            : actividad === "pantallas"
+                              ? "Usar pantallas (celular, TV, computadora)"
+                              : actividad === "musica"
+                                ? "Escuchar música"
+                                : "Otras actividades"}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
-                {formData.actividadesAntesDormir === "leer" && (
+                {formData.actividadesAntesDormir.length > 0 && (
                   <div>
                     <Label htmlFor="minutosLecturaAntesDormir">
-                      ¿Cuántos minutos lees antes de dormir? <span className="text-gray-500 text-sm">(opcional)</span>
+                      ¿Cuántos minutos dedicas a estas actividades antes de dormir?{" "}
+                      <span className="text-gray-500 text-sm">(opcional)</span>
                     </Label>
                     <Input
                       id="minutosLecturaAntesDormir"
