@@ -29,8 +29,6 @@ export default function CuestionarioReducidoPage() {
             cronotipo basándose en tus hábitos de sueño tanto en días laborables como en días libres.
           </p>
           <p className="mb-4">
-            Esta versión reducida te permite completar el cuestionario de forma más rápida, manteniendo la precisión en
-            la evaluación de tu cronotipo.
           </p>
           <p>
             Completar este cuestionario te ayudará a entender mejor tus patrones de sueño y tu reloj biológico interno,
