@@ -74,9 +74,9 @@ export async function POST(request: Request) {
       // Campos específicos del cuestionario reducido
       hora_preparado_dormir_lab: data.horaPreparadoDormirLaboral,
       hora_preparado_dormir_lib: data.horaPreparadoDormirLibre,
-      usa_alarma_lab: data.usaAlarmaLaboral,
-      usa_alarma_lib: data.usaAlarmaLibre,
-      razones_no_elegir_sueno: data.razonesNoElegirSueno,
+      usa_alarma_lab: data.usaAlarmaLaboral === "true",
+      usa_alarma_lib: data.usaAlarmaLibre === "true",
+      razones_no_elegir_sueno: data.razonesNoElegirSueno === "true",
       tipo_razones_no_elegir_sueno: data.tipoRazonesNoElegirSueno,
     }
 
@@ -84,6 +84,23 @@ export async function POST(request: Request) {
     try {
       console.log("API: Intentando guardar en Supabase")
       const supabase = createServerSupabaseClient()
+
+      // Verificar la conexión a Supabase
+      const { data: testData, error: testError } = await supabase.from("respuestas_cronotipo").select("count").limit(1)
+      if (testError) {
+        console.error("API: Error al verificar la conexión a Supabase:", testError)
+        return NextResponse.json({
+          id,
+          success: false,
+          localOnly: true,
+          data: respuesta,
+          supabaseError: `Error de conexión: ${testError.message}`,
+        })
+      }
+
+      console.log("API: Conexión a Supabase verificada, insertando datos...")
+
+      // Insertar los datos
       const { error } = await supabase.from("respuestas_cronotipo").insert(respuesta)
 
       if (error) {

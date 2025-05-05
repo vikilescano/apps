@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { createClientSupabaseClient } from "@/lib/supabase"
+import Link from "next/link"
 
 export default function DiagnosticoPage() {
   const [status, setStatus] = useState<Record<string, any>>({})
@@ -116,9 +117,21 @@ export default function DiagnosticoPage() {
                 <p className={`mt-1 ${status.supabase?.includes("Error") ? "text-red-600" : "text-green-600"}`}>
                   {status.supabase}
                 </p>
-                <Button onClick={testSupabaseInsert} variant="outline" size="sm" className="mt-2">
-                  Probar inserción de datos
-                </Button>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  <Button onClick={testSupabaseInsert} variant="outline" size="sm">
+                    Probar inserción de datos
+                  </Button>
+                  <Link href="/diagnostico/supabase">
+                    <Button variant="outline" size="sm">
+                      Diagnóstico avanzado de Supabase
+                    </Button>
+                  </Link>
+                  <Link href="/diagnostico/tabla">
+                    <Button variant="outline" size="sm">
+                      Verificar tabla respuestas_cronotipo
+                    </Button>
+                  </Link>
+                </div>
                 {status.testInsert && (
                   <p
                     className={`mt-2 text-sm ${status.testInsert?.includes("Error") ? "text-red-600" : "text-green-600"}`}

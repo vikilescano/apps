@@ -129,7 +129,7 @@ export default function FormularioReducidoPage() {
     }
   }
 
-  // Manejar el envío del formulario
+  // Mejorar el manejo de errores en la función handleSubmit
   const handleSubmit = async (event) => {
     // Asegurarse de que event sea un objeto con preventDefault
     if (event && typeof event.preventDefault === "function") {
@@ -262,9 +262,21 @@ export default function FormularioReducidoPage() {
 
         if (responseData.supabaseError) {
           console.warn("Los datos se guardaron localmente pero hubo un error con Supabase:", responseData.supabaseError)
+          toast({
+            title: "Advertencia",
+            description:
+              "Los datos se guardaron localmente pero hubo un problema con la base de datos. Tus resultados están disponibles, pero podrían no aparecer en el panel de administración.",
+            variant: "warning",
+          })
         }
       } catch (fetchError) {
         console.error("Error al enviar datos al servidor:", fetchError)
+        toast({
+          title: "Advertencia",
+          description:
+            "Hubo un problema al guardar los datos en el servidor, pero tus resultados están disponibles localmente.",
+          variant: "warning",
+        })
         // Continuamos con el flujo aunque haya error en el envío
       }
 

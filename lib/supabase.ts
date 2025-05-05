@@ -10,6 +10,10 @@ export function createServerSupabaseClient() {
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
     if (!supabaseUrl || !supabaseKey) {
+      console.error("Variables de entorno de Supabase no configuradas:", {
+        url: supabaseUrl ? "Configurada" : "No configurada",
+        key: supabaseKey ? "Configurada" : "No configurada",
+      })
       throw new Error("Variables de entorno de Supabase no configuradas correctamente")
     }
 
@@ -24,7 +28,7 @@ export function createServerSupabaseClient() {
           const [input, init = {}] = args
           return fetch(input, {
             ...init,
-            signal: AbortSignal.timeout(10000), // 10 segundos de timeout
+            signal: AbortSignal.timeout(30000), // 30 segundos de timeout (aumentado de 15s)
           })
         },
       },
