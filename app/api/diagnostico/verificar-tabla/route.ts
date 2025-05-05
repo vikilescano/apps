@@ -1,81 +1,134 @@
 import { NextResponse } from "next/server"
-import { createServerSupabaseClient } from "@/lib/supabase"
+import { createClient } from "@/lib/supabase/server"
 
 export async function GET() {
   try {
-    console.log("Iniciando verificación de tabla respuestas_cronotipo...")
-    const supabase = createServerSupabaseClient()
+    const supabase = createClient()
+    const resultados = {
+      conexion: { success: false, message: "", error: null },
+      estructura: { success: false, message: "", error: null },
+      permisos: { success: false, message: "", error: null },
+      informacion: { success: false, message: "", error: null },
+    }
 
-    // Verificar si la tabla existe intentando obtener su estructura
-    const { data: tableInfo, error: tableError } = await supabase
-      .rpc("get_table_definition", {
-        table_name: "respuestas_cronotipo",
+    // 1. Verificar conexión
+    try {
+      const { data: version, error: versionError } = await supabase.rpc("version")
+      if (versionError) throw versionError
+      resultados.conexion = {
+        success: true,
+        message: "Conexión a Supabase establecida correctamente",
+        error: null,
+      }
+    } catch (error) {
+      resultados.conexion = {
+        success: false,
+        message: "Error al conectar con Supabase",
+        error: String(error),
+      }
+      // Si no hay conexión, devolver resultados inmediatamente
+      return NextResponse.json(resultados)
+    }
+
+    // 2. Verificar estructura de la tabla
+    try {
+      const { data: estructura, error: estructuraError } = await supabase.rpc("get_table_schema", {
+        p_table_name: "respuestas_cronotipo",
       })
-      .catch(() => ({ data: null, error: { message: "Error al verificar la tabla" } }))
 
-    if (tableError) {
-      console.error("Error al verificar la tabla:", tableError)
+      if (estructuraError) throw estructuraError
 
-      // Intentar una consulta simple para ver si la tabla existe
-      const { data: testData, error: testError } = await supabase.from("respuestas_cronotipo").select("id").limit(1)
+      resultados.estructura = {
+        success: true,
+        message: "Estructura de la tabla obtenida correctamente",
+        data: estructura,
+        error: null,
+      }
+    } catch (error) {
+      resultados.estructura = {
+        success: false,
+        message: "Error al obtener la estructura",
+        error: String(error),
+      }
+    }
 
-      if (testError) {
-        return NextResponse.json({
-          success: false,
-          exists: false,
-          error: `Error al verificar la tabla: ${testError.message}`,
-          suggestion: "La tabla 'respuestas_cronotipo' podría no existir o no tener los permisos correctos.",
-        })
+    // 3. Verificar permisos de escritura
+    try {
+      // Datos de prueba para insertar
+      const datosTest = {
+        edad: 30,
+        genero: "test",
+        cronotipo: "test",
+        msf_sc: 4.5,
+        sjl: 1.0,
       }
 
-      return NextResponse.json({
+      // Insertar datos de prueba
+      const { data: insertData, error: insertError } = await supabase
+        .from("respuestas_cronotipo")
+        .insert([datosTest])
+        .select()
+
+      if (insertError) throw insertError
+
+      // Si llegamos aquí, la inserción fue exitosa
+      resultados.permisos = {
         success: true,
-        exists: true,
-        message: "La tabla existe pero no se pudo obtener su estructura",
-        data: testData,
-      })
-    }
+        message: "Permisos de escritura verificados correctamente",
+        data: insertData,
+        error: null,
+      }
 
-    // Intentar insertar un registro de prueba
-    const testId = `test-${Date.now()}`
-    const testData = {
-      id: testId,
-      tipo_cuestionario: "test",
-      created_at: new Date().toISOString(),
-      cronotipo: "Test",
-      msf_sc: 4.5,
-      sjl: 1.2,
-    }
-
-    const { error: insertError } = await supabase.from("respuestas_cronotipo").insert(testData)
-
-    if (insertError) {
-      console.error("Error al insertar datos de prueba:", insertError)
-      return NextResponse.json({
+      // Eliminar el registro de prueba
+      if (insertData && insertData.length > 0) {
+        await supabase.from("respuestas_cronotipo").delete().eq("id", insertData[0].id)
+      }
+    } catch (error) {
+      resultados.permisos = {
         success: false,
-        exists: true,
-        canInsert: false,
-        error: `Error al insertar: ${insertError.message}`,
-        suggestion: "La tabla existe pero no se pueden insertar datos. Verifica los permisos.",
-      })
+        message: "Error al insertar datos",
+        error: String(error),
+      }
     }
 
-    // Eliminar el registro de prueba
-    await supabase.from("respuestas_cronotipo").delete().eq("id", testId)
+    // 4. Obtener información detallada de la tabla
+    try {
+      const { data: tablaInfo, error: tablaError } = await supabase.from("respuestas_cronotipo").select("*").limit(1)
 
-    return NextResponse.json({
-      success: true,
-      exists: true,
-      canInsert: true,
-      message: "La tabla existe y se pueden insertar datos correctamente",
-      tableInfo: tableInfo,
-    })
+      if (tablaError) throw tablaError
+
+      // Contar registros
+      const { count, error: countError } = await supabase
+        .from("respuestas_cronotipo")
+        .select("*", { count: "exact", head: true })
+
+      if (countError) throw countError
+
+      resultados.informacion = {
+        success: true,
+        message: "Información de la tabla obtenida correctamente",
+        count: count,
+        columnas: tablaInfo && tablaInfo.length > 0 ? Object.keys(tablaInfo[0]).length : 0,
+        error: null,
+      }
+    } catch (error) {
+      resultados.informacion = {
+        success: false,
+        message: "No se pudo obtener información detallada de la tabla",
+        error: String(error),
+      }
+    }
+
+    return NextResponse.json(resultados)
   } catch (error) {
     console.error("Error general:", error)
-    return NextResponse.json({
-      success: false,
-      error: `Error general: ${error.message}`,
-      suggestion: "Verifica la conexión a Supabase y las variables de entorno.",
-    })
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Error general al verificar la tabla",
+        error: String(error),
+      },
+      { status: 500 },
+    )
   }
 }

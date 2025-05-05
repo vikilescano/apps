@@ -58,12 +58,13 @@
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.9.6",
     "zod": "latest",
+    "@supabase/supabase-js": "latest",
     "@vercel/kv": "latest",
     "d3": "latest",
-    "uuid": "latest",
-    "@supabase/supabase-js": "latest",
     "fs": "latest",
-    "path": "latest"
+    "path": "latest",
+    "uuid": "latest",
+    "@supabase/ssr": "latest"
   },
   "devDependencies": {
     "@types/node": "^22",

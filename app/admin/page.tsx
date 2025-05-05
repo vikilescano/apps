@@ -342,7 +342,6 @@ export default function AdminPage() {
                       />
                     </TableHead>
                     <TableHead>ID</TableHead>
-                    <TableHead>Tipo</TableHead>
                     <TableHead>Fecha</TableHead>
                     <TableHead>Edad</TableHead>
                     <TableHead>Género</TableHead>
@@ -379,17 +378,6 @@ export default function AdminPage() {
                           />
                         </TableCell>
                         <TableCell className="font-medium">{respuesta.id.substring(0, 8)}...</TableCell>
-                        <TableCell>
-                          <span
-                            className={respuesta.tipo_cuestionario === "reducido" ? "text-blue-600" : "text-green-600"}
-                          >
-                            {respuesta.tipo_cuestionario === "reducido"
-                              ? "Reducido"
-                              : respuesta.tipo_cuestionario === "general"
-                                ? "General"
-                                : "Desconocido"}
-                          </span>
-                        </TableCell>
                         <TableCell>{new Date(respuesta.created_at).toLocaleDateString()}</TableCell>
 
                         {editingRow === respuesta.id ? (

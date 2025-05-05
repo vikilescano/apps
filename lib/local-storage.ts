@@ -32,6 +32,9 @@ export function guardarRespuesta(respuesta: any) {
   }
 }
 
+// Alias para guardarRespuesta para mantener compatibilidad
+export const guardarRespuestaLocal = guardarRespuesta
+
 // Obtener una respuesta específica por ID
 export function obtenerRespuesta(id: string) {
   try {

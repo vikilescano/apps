@@ -1,152 +1,146 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { createClientSupabaseClient } from "@/lib/supabase"
 import Link from "next/link"
+import { createClientSupabaseClient } from "@/lib/supabase"
 
 export default function DiagnosticoPage() {
-  const [status, setStatus] = useState<Record<string, any>>({})
-  const [loading, setLoading] = useState(true)
+  const [connectionStatus, setConnectionStatus] = useState("Verificando...")
+  const [tableStatus, setTableStatus] = useState("Verificando...")
+  const [schemaStatus, setSchemaStatus] = useState("Verificando...")
+  const [insertStatus, setInsertStatus] = useState("Verificando...")
+  const [tableInfo, setTableInfo] = useState(null)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
-    async function checkEnvironment() {
-      setStatus((prev) => ({ ...prev, checking: true }))
-
-      // Verificar variables de entorno del cliente
-      const clientEnvVars = {
-        NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL || "No configurado",
-        NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? "Configurado" : "No configurado",
-      }
-
-      setStatus((prev) => ({ ...prev, clientEnvVars }))
-
-      // Verificar localStorage
-      try {
-        localStorage.setItem("test", "test")
-        const testValue = localStorage.getItem("test")
-        localStorage.removeItem("test")
-        setStatus((prev) => ({ ...prev, localStorage: testValue === "test" ? "Funcionando" : "Error" }))
-      } catch (e) {
-        setStatus((prev) => ({ ...prev, localStorage: `Error: ${e.message}` }))
-      }
-
-      // Verificar conexión a Supabase
-      try {
-        const supabase = createClientSupabaseClient()
-        const { data, error } = await supabase.from("respuestas_cronotipo").select("count").limit(1)
-
-        if (error) {
-          setStatus((prev) => ({ ...prev, supabase: `Error: ${error.message}` }))
-        } else {
-          setStatus((prev) => ({ ...prev, supabase: "Conexión exitosa" }))
-        }
-      } catch (e) {
-        setStatus((prev) => ({ ...prev, supabase: `Error: ${e.message}` }))
-      }
-
-      setLoading(false)
-    }
-
-    checkEnvironment()
+    checkConnection()
+    checkTable()
   }, [])
 
-  // Función para probar el envío de datos a Supabase
-  const testSupabaseInsert = async () => {
+  async function checkConnection() {
     try {
-      setStatus((prev) => ({ ...prev, testInsert: "Probando..." }))
+      const supabase = createClientSupabaseClient()
+      const { data, error } = await supabase.from("respuestas_cronotipo").select("id").limit(1)
 
-      const testData = {
-        id: `test-${Date.now()}`,
-        tipo_cuestionario: "test",
-        created_at: new Date().toISOString(),
-        cronotipo: "Test",
-        msf_sc: 4.5,
-        sjl: 1.2,
-      }
-
-      const response = await fetch("/api/diagnostico/test-insert", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(testData),
-      })
-
-      const result = await response.json()
-
-      if (result.success) {
-        setStatus((prev) => ({ ...prev, testInsert: "Éxito: Datos de prueba insertados correctamente" }))
+      if (error) {
+        setConnectionStatus("Error de conexión")
+        setError(error.message)
       } else {
-        setStatus((prev) => ({ ...prev, testInsert: `Error: ${result.error}` }))
+        setConnectionStatus("Conexión exitosa")
       }
-    } catch (e) {
-      setStatus((prev) => ({ ...prev, testInsert: `Error: ${e.message}` }))
+    } catch (error) {
+      setConnectionStatus("Error de conexión")
+      setError(error.message)
+    }
+  }
+
+  async function checkTable() {
+    try {
+      const response = await fetch("/api/diagnostico/verificar-tabla")
+      const data = await response.json()
+
+      if (data.success) {
+        setTableStatus("Tabla verificada correctamente")
+        setInsertStatus("Inserción de datos exitosa")
+        setTableInfo(data.tableInfo)
+
+        // Verificar estructura
+        if (data.tableInfo) {
+          setSchemaStatus("Estructura verificada correctamente")
+        } else {
+          setSchemaStatus("Error al obtener la estructura")
+          setError("No se pudo obtener información del esquema")
+        }
+      } else {
+        setTableStatus("Error al verificar la tabla")
+        setInsertStatus("Error al insertar datos")
+        setSchemaStatus("Error al obtener la estructura")
+        setError(data.error)
+      }
+    } catch (error) {
+      setTableStatus("Error al verificar la tabla")
+      setError(error.message || "Error desconocido")
     }
   }
 
   return (
-    <div className="container py-10">
-      <Card className="max-w-2xl mx-auto">
-        <CardHeader>
-          <CardTitle>Diagnóstico de la Aplicación</CardTitle>
-          <CardDescription>Verifica el estado de los componentes críticos</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <p>Verificando estado...</p>
-          ) : (
-            <div className="space-y-4">
-              <div>
-                <h3 className="font-medium">Variables de entorno del cliente:</h3>
-                <pre className="bg-slate-100 p-2 rounded mt-2 overflow-auto">
-                  {JSON.stringify(status.clientEnvVars, null, 2)}
-                </pre>
-              </div>
+    <div className="container mx-auto p-4">
+      <h1 className="text-2xl font-bold mb-4">Diagnóstico de la aplicación</h1>
 
-              <div>
-                <h3 className="font-medium">Estado de localStorage:</h3>
-                <p className={`mt-1 ${status.localStorage === "Funcionando" ? "text-green-600" : "text-red-600"}`}>
-                  {status.localStorage}
-                </p>
-              </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div className="bg-white shadow rounded p-4">
+          <h2 className="text-xl font-semibold mb-2">Estado de la conexión</h2>
+          <p className="mb-2">Verifica si la aplicación puede conectarse a Supabase</p>
 
-              <div>
-                <h3 className="font-medium">Conexión a Supabase:</h3>
-                <p className={`mt-1 ${status.supabase?.includes("Error") ? "text-red-600" : "text-green-600"}`}>
-                  {status.supabase}
-                </p>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  <Button onClick={testSupabaseInsert} variant="outline" size="sm">
-                    Probar inserción de datos
-                  </Button>
-                  <Link href="/diagnostico/supabase">
-                    <Button variant="outline" size="sm">
-                      Diagnóstico avanzado de Supabase
-                    </Button>
-                  </Link>
-                  <Link href="/diagnostico/tabla">
-                    <Button variant="outline" size="sm">
-                      Verificar tabla respuestas_cronotipo
-                    </Button>
-                  </Link>
-                </div>
-                {status.testInsert && (
-                  <p
-                    className={`mt-2 text-sm ${status.testInsert?.includes("Error") ? "text-red-600" : "text-green-600"}`}
-                  >
-                    {status.testInsert}
-                  </p>
-                )}
+          <div className="mt-2">
+            <p className="font-medium">Conexión a Supabase</p>
+            <p className={connectionStatus.includes("Error") ? "text-red-600" : "text-green-600"}>{connectionStatus}</p>
+          </div>
+        </div>
+
+        <div className="bg-white shadow rounded p-4">
+          <h2 className="text-xl font-semibold mb-2">Estructura de la tabla</h2>
+          <p className="mb-2">Verifica la estructura de la tabla respuestas_cronotipo</p>
+
+          <div className="mt-2">
+            <p className="font-medium">Estado:</p>
+            <p className={schemaStatus.includes("Error") ? "text-red-600" : "text-green-600"}>{schemaStatus}</p>
+          </div>
+        </div>
+
+        <div className="bg-white shadow rounded p-4">
+          <h2 className="text-xl font-semibold mb-2">Permisos de escritura</h2>
+          <p className="mb-2">Verifica si se pueden insertar datos en la tabla</p>
+
+          <div className="mt-2">
+            <p className="font-medium">Estado:</p>
+            <p className={insertStatus.includes("Error") ? "text-red-600" : "text-green-600"}>{insertStatus}</p>
+          </div>
+        </div>
+
+        <div className="bg-white shadow rounded p-4">
+          <h2 className="text-xl font-semibold mb-2">Información de la tabla</h2>
+          <p className="mb-2">Detalles de la estructura de la tabla</p>
+
+          <div className="mt-2">
+            {tableInfo ? (
+              <div className="max-h-40 overflow-y-auto text-xs">
+                <pre>{JSON.stringify(tableInfo, null, 2)}</pre>
               </div>
+            ) : (
+              <p className="text-red-600">No se pudo obtener información detallada de la tabla</p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white shadow rounded p-4 mb-6">
+        <h2 className="text-xl font-semibold mb-2">Verificación de Tabla respuestas_cronotipo</h2>
+        <p className="mb-2">Verifica si la tabla existe y si se pueden insertar datos</p>
+
+        <div className="mt-2">
+          <p className="font-medium">Estado:</p>
+          <p className={tableStatus.includes("Error") ? "text-red-600" : "text-green-600"}>{tableStatus}</p>
+
+          {error && (
+            <div className="mt-2 p-2 bg-red-100 text-red-700 rounded">
+              <p className="font-medium">Error general:</p>
+              <p className="text-sm">{error}</p>
             </div>
           )}
-        </CardContent>
-        <CardFooter>
-          <Button onClick={() => (window.location.href = "/")}>Volver al inicio</Button>
-        </CardFooter>
-      </Card>
+        </div>
+      </div>
+
+      <div className="bg-white shadow rounded p-4">
+        <h2 className="text-xl font-semibold mb-2">Verificación de RLS</h2>
+        <p className="mb-2">Verifica si Row Level Security está configurado correctamente</p>
+
+        <div className="mt-2">
+          <Link href="/diagnostico/rls" className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
+            Verificar RLS
+          </Link>
+        </div>
+      </div>
     </div>
   )
 }

@@ -1,71 +1,21 @@
 import { createClient } from "@supabase/supabase-js"
 
-// Singleton para el cliente de Supabase en el lado del cliente
-let clientSingleton: ReturnType<typeof createClient> | null = null
+// Singleton pattern para el cliente de Supabase en el lado del cliente
+let supabaseClient: ReturnType<typeof createClient> | null = null
 
-// Crear cliente de Supabase para el lado del servidor
-export function createServerSupabaseClient() {
-  try {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-    if (!supabaseUrl || !supabaseKey) {
-      console.error("Variables de entorno de Supabase no configuradas:", {
-        url: supabaseUrl ? "Configurada" : "No configurada",
-        key: supabaseKey ? "Configurada" : "No configurada",
-      })
-      throw new Error("Variables de entorno de Supabase no configuradas correctamente")
-    }
-
-    // Añadir opciones adicionales para mejorar la estabilidad
-    const options = {
-      auth: {
-        persistSession: false,
-      },
-      global: {
-        fetch: (...args) => {
-          // Configurar un timeout para las solicitudes fetch
-          const [input, init = {}] = args
-          return fetch(input, {
-            ...init,
-            signal: AbortSignal.timeout(30000), // 30 segundos de timeout (aumentado de 15s)
-          })
-        },
-      },
-    }
-
-    console.log("Creando cliente Supabase con URL:", supabaseUrl)
-    return createClient(supabaseUrl, supabaseKey, options)
-  } catch (error) {
-    console.error("Error detallado al crear el cliente de Supabase:", error)
-    throw error
+export const getSupabaseClient = () => {
+  if (!supabaseClient && typeof window !== "undefined") {
+    supabaseClient = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
   }
+  return supabaseClient
 }
 
-// Crear cliente de Supabase para el lado del cliente
-export function createClientSupabaseClient() {
-  if (clientSingleton) return clientSingleton
+// Cliente de Supabase para el lado del servidor
+export const createServerSupabaseClient = () => {
+  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
+}
 
-  try {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-    if (!supabaseUrl || !supabaseKey) {
-      throw new Error("Variables de entorno de Supabase no configuradas correctamente")
-    }
-
-    // Añadir opciones adicionales para mejorar la estabilidad
-    const options = {
-      auth: {
-        autoRefreshToken: true,
-        persistSession: true,
-      },
-    }
-
-    clientSingleton = createClient(supabaseUrl, supabaseKey, options)
-    return clientSingleton
-  } catch (error) {
-    console.error("Error al crear el cliente de Supabase:", error)
-    throw error
-  }
+// Cliente de Supabase para el lado del cliente (función específica)
+export const createClientSupabaseClient = () => {
+  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
 }

@@ -1,7 +1,8 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 
-export default function Home() {
+export default function HomePage() {
   return (
     <div className="container flex flex-col items-center justify-center min-h-screen py-12 space-y-8">
       <div className="text-center space-y-4">
@@ -11,21 +12,27 @@ export default function Home() {
         </p>
       </div>
 
-      <div className="flex flex-col gap-4 w-full max-w-md">
-        <Link href="/cuestionario-reducido">
-          <Button className="w-full">Versión reducida</Button>
-        </Link>
-        <Link href="/admin">
-          <Button className="w-full" variant="outline">
-            Panel de administración
-          </Button>
-        </Link>
-        <Link href="/investigadores">
-          <Button className="w-full" variant="outline">
-            Panel de investigadores
-          </Button>
-        </Link>
-      </div>
+      <Card className="w-full max-w-2xl">
+        <CardHeader>
+          <CardTitle>Cuestionario de Cronotipo</CardTitle>
+          <CardDescription>Versión simplificada para una evaluación rápida</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="mb-4">
+            El Cuestionario de Cronotipo de Munich (MCTQ) es una herramienta científica desarrollada para evaluar tu
+            cronotipo basándose en tus hábitos de sueño tanto en días laborables como en días libres.
+          </p>
+          <p>
+            Completar este cuestionario te ayudará a entender mejor tus patrones de sueño y tu reloj biológico interno,
+            lo que puede ser útil para optimizar tu horario diario y mejorar tu bienestar.
+          </p>
+        </CardContent>
+        <CardFooter>
+          <Link href="/cuestionario-reducido" className="w-full">
+            <Button className="w-full">Comenzar cuestionario</Button>
+          </Link>
+        </CardFooter>
+      </Card>
     </div>
   )
 }

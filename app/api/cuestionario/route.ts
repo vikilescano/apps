@@ -1,86 +1,38 @@
 import { NextResponse } from "next/server"
-import { v4 as uuidv4 } from "uuid"
-import { createServerSupabaseClient } from "@/lib/supabase"
+import { createClient } from "@/lib/supabase/server"
+import { guardarRespuestaLocal } from "@/lib/local-storage"
 
 export async function POST(request: Request) {
   try {
-    const data = await request.json()
-    const supabase = createServerSupabaseClient()
+    const respuesta = await request.json()
 
-    // Generar un ID único para la respuesta
-    const id = uuidv4()
+    // Intentar guardar en Supabase primero
+    try {
+      const supabase = createClient()
 
-    // Mapear los datos del formulario a la estructura de la base de datos
-    const respuesta = {
-      id,
-      // Agregar campo para identificar el tipo de cuestionario
-      tipo_cuestionario: "general",
+      // Eliminar tipo_cuestionario si existe en el objeto respuesta
+      if (respuesta.tipo_cuestionario) {
+        delete respuesta.tipo_cuestionario
+      }
 
-      // Datos demográficos
-      edad: data.edad,
-      genero: data.genero,
-      provincia: data.provincia,
-      pais: data.pais,
+      const { data, error } = await supabase.from("respuestas_cronotipo").insert([respuesta]).select()
 
-      // Días laborables
-      hora_despertar_lab: data.horaDespertarLaboral,
-      min_despertar_lab: data.minutosPararDespertarLaboral,
-      despertar_antes_alarma_lab: data.despertarAntesAlarmaLaboral,
-      hora_despierto_lab: data.horaCompletamenteDespiertaLaboral,
-      hora_energia_baja_lab: data.horaEnergiaBajaLaboral,
-      hora_acostar_lab: data.horaAcostarseLaboral,
-      min_dormirse_lab: data.minutosParaDormirseLaboral,
-      siesta_lab: data.siestaDiaLaboral,
-      duracion_siesta_lab: data.duracionSiestaDiaLaboral,
+      if (error) {
+        console.error("Error al guardar en Supabase:", error)
+        // Si falla Supabase, guardar localmente
+        const respuestaGuardada = guardarRespuestaLocal(respuesta)
+        return NextResponse.json(respuestaGuardada)
+      }
 
-      // Días libres
-      hora_sueno_despertar_lib: data.horaSuenoDespetarLibre,
-      hora_despertar_lib: data.horaDespertarLibre,
-      intenta_dormir_mas_lib: data.intentaDormirMasLibre,
-      min_extra_sueno_lib: data.minutosExtraSuenoLibre,
-      min_despertar_lib: data.minutosPararDespertarLibre,
-      hora_despierto_lib: data.horaCompletamenteDespiertaLibre,
-      hora_energia_baja_lib: data.horaEnergiaBajaLibre,
-      hora_acostar_lib: data.horaAcostarseLibre,
-      min_dormirse_lib: data.minutosParaDormirseLibre,
-      siesta_lib: data.siestaDiaLibre,
-      duracion_siesta_lib: data.duracionSiestaDiaLibre,
-
-      // Hábitos antes de dormir y preferencias
-      actividades_antes_dormir: data.actividadesAntesDormir || [],
-      min_lectura_antes_dormir: data.minutosLecturaAntesDormir,
-      min_maximo_lectura: data.minutosMaximoLectura,
-      prefiere_oscuridad_total: data.prefiereOscuridadTotal,
-      despierta_mejor_con_luz: data.despiertaMejorConLuz,
-
-      // Tiempo al aire libre
-      horas_aire_libre_lab: data.horasAireLibreDiasLaborales,
-      min_aire_libre_lab: data.minutosAireLibreDiasLaborales,
-      horas_aire_libre_lib: data.horasAireLibreDiasLibres,
-      min_aire_libre_lib: data.minutosAireLibreDiasLibres,
-
-      // Resultados calculados
-      msf: data.MSF,
-      msf_sc: data.MSFsc,
-      sd_w: data.SDw,
-      sd_f: data.SDf,
-      sd_week: data.SDweek,
-      so_f: data.SOf,
-      sjl: data.SJL,
-      cronotipo: data.cronotipo,
+      return NextResponse.json(data[0])
+    } catch (error) {
+      console.error("Error al conectar con Supabase:", error)
+      // Si hay un error de conexión, guardar localmente
+      const respuestaGuardada = guardarRespuestaLocal(respuesta)
+      return NextResponse.json(respuestaGuardada)
     }
-
-    // Guardar en Supabase
-    const { error } = await supabase.from("respuestas_cronotipo").insert(respuesta)
-
-    if (error) {
-      console.error("Error al guardar en Supabase:", error)
-      return NextResponse.json({ error: "Error al guardar la respuesta" }, { status: 500 })
-    }
-
-    return NextResponse.json({ id, success: true })
   } catch (error) {
-    console.error("Error al guardar la respuesta:", error)
-    return NextResponse.json({ error: "Error al procesar la solicitud" }, { status: 500 })
+    console.error("Error al procesar la solicitud:", error)
+    return NextResponse.json({ error: "Error al procesar la solicitud" }, { status: 400 })
   }
 }
