@@ -11,23 +11,41 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { id } = body
+    const { id, ids } = body
 
-    if (!id) {
-      return NextResponse.json({ error: "ID no proporcionado" }, { status: 400 })
+    // Determinar qué IDs eliminar
+    const idsToDelete = ids || (id ? [id] : null)
+
+    if (!idsToDelete || idsToDelete.length === 0) {
+      return NextResponse.json({ error: "No se proporcionaron IDs para eliminar" }, { status: 400 })
     }
 
+    console.log("Intentando eliminar IDs:", idsToDelete)
+
+    // Usar el cliente de Supabase con rol de servicio
     const supabase = createServerSupabaseClient()
-    const { error } = await supabase.from("respuestas_cronotipo").delete().eq("id", id)
+
+    // Eliminar las respuestas
+    const { error, count } = await supabase
+      .from("respuestas_cronotipo")
+      .delete({ count: "exact" })
+      .in("id", idsToDelete)
 
     if (error) {
-      console.error("Error al eliminar respuesta:", error)
+      console.error("Error al eliminar respuestas:", error)
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    return NextResponse.json({ success: true })
+    console.log(`Eliminadas ${count} respuestas`)
+    return NextResponse.json({ success: true, count })
   } catch (error) {
     console.error("Error en la API de eliminación:", error)
-    return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 })
+    return NextResponse.json(
+      {
+        error: "Error interno del servidor",
+        details: error.message,
+      },
+      { status: 500 },
+    )
   }
 }

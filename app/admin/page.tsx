@@ -7,6 +7,18 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useRouter } from "next/navigation"
 import { toast } from "@/components/ui/use-toast"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Trash2, RefreshCw, FileDown, LogOut } from "lucide-react"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 export default function AdminPage() {
   const [password, setPassword] = useState("")
@@ -14,6 +26,9 @@ export default function AdminPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [respuestas, setRespuestas] = useState([])
   const [error, setError] = useState(null)
+  const [selectedRows, setSelectedRows] = useState([])
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [isDeletingMultiple, setIsDeletingMultiple] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -69,6 +84,7 @@ export default function AdminPage() {
 
   async function fetchRespuestas() {
     setIsLoading(true)
+    setError(null)
     try {
       console.log("Obteniendo respuestas...")
       const response = await fetch("/api/admin/respuestas")
@@ -135,9 +151,14 @@ export default function AdminPage() {
   }
 
   async function handleDeleteRespuesta(id) {
-    if (!confirm("¿Estás seguro de que deseas eliminar esta respuesta?")) {
-      return
-    }
+    setIsDeletingMultiple(false)
+    setIsDeleteDialogOpen(true)
+    setSelectedRows([id])
+  }
+
+  async function handleDeleteSelected() {
+    setIsDeleteDialogOpen(false)
+    setIsLoading(true)
 
     try {
       const response = await fetch(`/api/admin/respuestas/delete`, {
@@ -145,28 +166,37 @@ export default function AdminPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ id }),
+        body: JSON.stringify({ ids: selectedRows }),
       })
 
+      const data = await response.json()
+
       if (response.ok) {
-        // Actualizar la lista de respuestas
-        fetchRespuestas()
         toast({
-          title: "Respuesta eliminada",
-          description: "La respuesta se eliminó correctamente",
+          title: "Respuestas eliminadas",
+          description: `Se eliminaron ${selectedRows.length} respuesta(s) correctamente`,
         })
+        setSelectedRows([])
+        fetchRespuestas()
       } else {
-        const data = await response.json()
-        setError(data.error || "Error al eliminar la respuesta")
+        console.error("Error al eliminar respuestas:", data)
+        setError(data.error || "Error al eliminar las respuestas")
         toast({
           title: "Error",
-          description: "No se pudo eliminar la respuesta",
+          description: data.error || "No se pudieron eliminar las respuestas",
           variant: "destructive",
         })
       }
     } catch (error) {
-      console.error("Error al eliminar respuesta:", error)
-      setError("Error al procesar la solicitud")
+      console.error("Error al eliminar respuestas:", error)
+      setError("Error al procesar la solicitud: " + error.message)
+      toast({
+        title: "Error",
+        description: "Error al procesar la solicitud",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -236,6 +266,38 @@ export default function AdminPage() {
     router.push(`/dashboard/${id}`)
   }
 
+  function toggleRowSelection(id) {
+    setSelectedRows((prev) => {
+      if (prev.includes(id)) {
+        return prev.filter((rowId) => rowId !== id)
+      } else {
+        return [...prev, id]
+      }
+    })
+  }
+
+  function toggleAllRows(checked) {
+    if (checked) {
+      setSelectedRows(respuestas.map((r) => r.id))
+    } else {
+      setSelectedRows([])
+    }
+  }
+
+  function handleDeleteMultiple() {
+    if (selectedRows.length === 0) {
+      toast({
+        title: "Ninguna fila seleccionada",
+        description: "Por favor, selecciona al menos una fila para eliminar",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsDeletingMultiple(true)
+    setIsDeleteDialogOpen(true)
+  }
+
   if (isLoading && !isAuthenticated) {
     return (
       <div className="container mx-auto p-4 flex justify-center items-center min-h-[80vh]">
@@ -279,13 +341,21 @@ export default function AdminPage() {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Panel de Administración</h1>
         <div className="flex gap-2">
-          <Button onClick={fetchRespuestas} variant="outline" disabled={isLoading}>
+          <Button onClick={fetchRespuestas} variant="outline" disabled={isLoading} className="flex items-center">
+            <RefreshCw className="mr-2 h-4 w-4" />
             {isLoading ? "Cargando..." : "Actualizar"}
           </Button>
-          <Button onClick={handleExportCSV} variant="outline" disabled={respuestas.length === 0 || isLoading}>
+          <Button
+            onClick={handleExportCSV}
+            variant="outline"
+            disabled={respuestas.length === 0 || isLoading}
+            className="flex items-center"
+          >
+            <FileDown className="mr-2 h-4 w-4" />
             Exportar CSV
           </Button>
-          <Button onClick={handleLogout} variant="outline">
+          <Button onClick={handleLogout} variant="outline" className="flex items-center">
+            <LogOut className="mr-2 h-4 w-4" />
             Cerrar sesión
           </Button>
         </div>
@@ -294,8 +364,14 @@ export default function AdminPage() {
       {error && <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">{error}</div>}
 
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Respuestas ({respuestas.length})</CardTitle>
+          {selectedRows.length > 0 && (
+            <Button onClick={handleDeleteMultiple} variant="destructive" size="sm" className="flex items-center">
+              <Trash2 className="mr-2 h-4 w-4" />
+              Eliminar seleccionados ({selectedRows.length})
+            </Button>
+          )}
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -305,6 +381,13 @@ export default function AdminPage() {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead>
                   <tr>
+                    <th className="px-2 py-3 bg-gray-50">
+                      <Checkbox
+                        checked={respuestas.length > 0 && selectedRows.length === respuestas.length}
+                        onCheckedChange={toggleAllRows}
+                        aria-label="Seleccionar todas las filas"
+                      />
+                    </th>
                     <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Fecha
                     </th>
@@ -331,13 +414,20 @@ export default function AdminPage() {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {respuestas.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="px-6 py-4 text-center text-sm text-gray-500">
+                      <td colSpan={8} className="px-6 py-4 text-center text-sm text-gray-500">
                         No hay respuestas registradas
                       </td>
                     </tr>
                   ) : (
                     respuestas.map((respuesta) => (
-                      <tr key={respuesta.id}>
+                      <tr key={respuesta.id} className={selectedRows.includes(respuesta.id) ? "bg-gray-50" : ""}>
+                        <td className="px-2 py-4 whitespace-nowrap">
+                          <Checkbox
+                            checked={selectedRows.includes(respuesta.id)}
+                            onCheckedChange={() => toggleRowSelection(respuesta.id)}
+                            aria-label={`Seleccionar fila ${respuesta.id}`}
+                          />
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {new Date(respuesta.created_at).toLocaleString()}
                         </td>
@@ -376,6 +466,26 @@ export default function AdminPage() {
           )}
         </CardContent>
       </Card>
+
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {isDeletingMultiple
+                ? `Esta acción eliminará permanentemente ${selectedRows.length} respuesta(s) seleccionada(s).`
+                : "Esta acción eliminará permanentemente la respuesta seleccionada."}
+              Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteSelected} className="bg-red-600 hover:bg-red-700">
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
