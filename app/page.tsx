@@ -15,7 +15,7 @@ export default function HomePage() {
       <Card className="w-full max-w-2xl">
         <CardHeader>
           <CardTitle>Cuestionario de Cronotipo</CardTitle>
-          <CardDescription>Versión simplificada para una evaluación rápida</CardDescription>
+          <CardDescription>Evaluación de tus patrones de sueño</CardDescription>
         </CardHeader>
         <CardContent>
           <p className="mb-4">
@@ -33,6 +33,18 @@ export default function HomePage() {
           </Link>
         </CardFooter>
       </Card>
+
+      <div className="flex justify-center space-x-4 text-sm">
+        <Link href="/admin" className="text-blue-600 hover:underline">
+          Administración
+        </Link>
+        <Link href="/investigadores" className="text-blue-600 hover:underline">
+          Investigadores
+        </Link>
+        <Link href="/diagnostico" className="text-blue-600 hover:underline">
+          Diagnóstico
+        </Link>
+      </div>
     </div>
   )
 }

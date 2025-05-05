@@ -1,27 +1,33 @@
 import { NextResponse } from "next/server"
 import { createServerSupabaseClient } from "@/lib/supabase"
+import { cookies } from "next/headers"
 
 export async function POST(request: Request) {
   try {
-    const { ids } = await request.json()
+    // Verificar autenticación
+    const isAuthenticated = cookies().get("admin_authenticated")?.value === "true"
+    if (!isAuthenticated) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 })
+    }
 
-    if (!ids || !Array.isArray(ids) || ids.length === 0) {
-      return NextResponse.json({ error: "No se proporcionaron IDs válidos" }, { status: 400 })
+    const body = await request.json()
+    const { id } = body
+
+    if (!id) {
+      return NextResponse.json({ error: "ID no proporcionado" }, { status: 400 })
     }
 
     const supabase = createServerSupabaseClient()
-
-    // Eliminar las respuestas seleccionadas
-    const { error } = await supabase.from("respuestas_cronotipo").delete().in("id", ids)
+    const { error } = await supabase.from("respuestas_cronotipo").delete().eq("id", id)
 
     if (error) {
-      console.error("Error al eliminar respuestas:", error)
-      return NextResponse.json({ error: "Error al eliminar las respuestas" }, { status: 500 })
+      console.error("Error al eliminar respuesta:", error)
+      return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    return NextResponse.json({ success: true, deletedCount: ids.length })
+    return NextResponse.json({ success: true })
   } catch (error) {
-    console.error("Error al procesar la solicitud:", error)
-    return NextResponse.json({ error: "Error al procesar la solicitud" }, { status: 500 })
+    console.error("Error en la API de eliminación:", error)
+    return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 })
   }
 }

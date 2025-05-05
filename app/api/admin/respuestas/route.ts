@@ -3,45 +3,40 @@ import { createServerSupabaseClient } from "@/lib/supabase"
 
 export async function GET() {
   try {
+    console.log("API de respuestas: Iniciando solicitud")
     const supabase = createServerSupabaseClient()
 
-    // Obtener todas las respuestas de Supabase
+    // Verificar si la tabla existe antes de consultar
+    const { data: tableExists, error: tableError } = await supabase.from("respuestas_cronotipo").select("id").limit(1)
+
+    if (tableError) {
+      console.error("Error al verificar la tabla:", tableError)
+      // Si hay un error específico de que la tabla no existe
+      if (tableError.message.includes("does not exist")) {
+        return NextResponse.json({ error: "La tabla respuestas_cronotipo no existe" }, { status: 404 })
+      }
+      return NextResponse.json({ error: tableError.message }, { status: 500 })
+    }
+
+    console.log("API de respuestas: Tabla verificada, obteniendo datos")
+
+    // Obtener todas las respuestas
     const { data, error } = await supabase
       .from("respuestas_cronotipo")
       .select("*")
       .order("created_at", { ascending: false })
 
     if (error) {
-      console.error("Error al obtener las respuestas:", error)
-      return NextResponse.json({ error: "Error al obtener las respuestas" }, { status: 500 })
+      console.error("Error al obtener respuestas:", error)
+      return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    // Mapear los datos para el frontend
-    const respuestas = data.map((item) => ({
-      id: item.id,
-      created_at: item.created_at,
-      edad: item.edad,
-      genero: item.genero,
-      provincia: item.provincia,
-      pais: item.pais,
+    console.log(`API de respuestas: ${data?.length || 0} respuestas obtenidas`)
 
-      // Resultados calculados
-      msf: item.msf,
-      msf_sc: item.msf_sc,
-      sd_w: item.sd_w,
-      sd_f: item.sd_f,
-      sd_week: item.sd_week,
-      so_f: item.so_f,
-      sjl: item.sjl,
-      cronotipo: item.cronotipo,
-
-      // Incluir todos los campos originales para el CSV
-      ...item,
-    }))
-
-    return NextResponse.json(respuestas)
+    // Si no hay datos, devolver un array vacío en lugar de null
+    return NextResponse.json(data || [])
   } catch (error) {
-    console.error("Error al obtener las respuestas:", error)
-    return NextResponse.json({ error: "Error al procesar la solicitud" }, { status: 500 })
+    console.error("Error en la API de respuestas:", error)
+    return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 })
   }
 }

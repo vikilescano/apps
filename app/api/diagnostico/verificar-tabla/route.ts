@@ -5,28 +5,20 @@ export async function GET() {
   try {
     const supabase = createServerSupabaseClient()
 
-    // Verificar si la tabla existe
-    const { data: tablesData, error: tablesError } = await supabase
-      .from("information_schema.tables")
-      .select("table_name")
-      .eq("table_schema", "public")
-      .eq("table_name", "respuestas_cronotipo")
+    // Verificar si la tabla existe usando un enfoque más directo
+    const { data: tableCheck, error: tableCheckError } = await supabase
+      .from("respuestas_cronotipo")
+      .select("id")
+      .limit(1)
 
-    if (tablesError) {
+    if (tableCheckError) {
       return NextResponse.json({
         success: false,
-        error: `Error al verificar la tabla: ${tablesError.message}`,
+        error: `Error al verificar la tabla: ${tableCheckError.message}`,
       })
     }
 
-    if (!tablesData || tablesData.length === 0) {
-      return NextResponse.json({
-        success: false,
-        error: "La tabla respuestas_cronotipo no existe",
-      })
-    }
-
-    // Obtener la estructura de la tabla usando la nueva función
+    // Obtener la estructura de la tabla usando la función corregida
     const { data: estructura, error: estructuraError } = await supabase.rpc("get_table_schema", {
       p_table_name: "respuestas_cronotipo",
     })
@@ -45,7 +37,6 @@ export async function GET() {
       created_at: new Date().toISOString(),
       edad: 30,
       genero: "test",
-      provincia: "test",
       pais: "test",
       hora_despertar_lab: "08:00",
       min_despertar_lab: 10,

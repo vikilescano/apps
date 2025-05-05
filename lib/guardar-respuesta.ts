@@ -51,18 +51,84 @@ export async function guardarRespuestaEnServidor(respuesta: any) {
   }
 }
 
+// Lista de campos válidos en la tabla respuestas_cronotipo
+const camposValidos = [
+  "id",
+  "created_at",
+  "edad",
+  "genero",
+  "provincia",
+  "pais",
+  "hora_despertar_lab",
+  "min_despertar_lab",
+  "despertar_antes_alarma_lab",
+  "hora_despierto_lab",
+  "hora_energia_baja_lab",
+  "hora_acostar_lab",
+  "min_dormirse_lab",
+  "siesta_lab",
+  "duracion_siesta_lab",
+  "hora_sueno_despertar_lib",
+  "hora_despertar_lib",
+  "intenta_dormir_mas_lib",
+  "min_extra_sueno_lib",
+  "min_despertar_lib",
+  "hora_despierto_lib",
+  "hora_energia_baja_lib",
+  "hora_acostar_lib",
+  "min_dormirse_lib",
+  "siesta_lib",
+  "duracion_siesta_lib",
+  "actividades_antes_dormir",
+  "min_lectura_antes_dormir",
+  "min_maximo_lectura",
+  "prefiere_oscuridad_total",
+  "despierta_mejor_con_luz",
+  "horas_aire_libre_lab",
+  "min_aire_libre_lab",
+  "horas_aire_libre_lib",
+  "min_aire_libre_lib",
+  "msf",
+  "msf_sc",
+  "sd_w",
+  "sd_f",
+  "sd_week",
+  "so_f",
+  "sjl",
+  "cronotipo",
+]
+
 // Guardar respuesta en Supabase
 export async function guardarRespuestaEnSupabase(respuesta: any) {
   try {
+    // Usar el cliente con rol de servicio para evitar restricciones de RLS
     const supabase = createServerSupabaseClient()
 
-    // Preparar datos para Supabase (eliminar campos que no existen en la tabla)
-    const { guardado_local, ...datosParaSupabase } = respuesta
+    // Crear un nuevo objeto solo con los campos válidos
+    const datosParaSupabase: Record<string, any> = {}
 
-    // Insertar o actualizar en Supabase
-    const { error } = await supabase.from("respuestas_cronotipo").upsert(datosParaSupabase)
+    // Solo incluir campos que existen en la tabla
+    for (const campo of camposValidos) {
+      if (respuesta[campo] !== undefined) {
+        datosParaSupabase[campo] = respuesta[campo]
+      }
+    }
 
-    if (error) {
+    console.log("Campos que se enviarán a Supabase:", Object.keys(datosParaSupabase))
+
+    // Intentar primero con upsert
+    const { error } = await supabase.from("respuestas_cronotipo").upsert(datosParaSupabase, { onConflict: "id" })
+
+    // Si hay un error de RLS, intentar con el método insert
+    if (error && error.message.includes("row-level security")) {
+      console.log("Error de RLS con upsert, intentando con insert...")
+      const { error: insertError } = await supabase.from("respuestas_cronotipo").insert(datosParaSupabase)
+
+      if (insertError) {
+        console.error("Error al insertar en Supabase:", insertError)
+        return false
+      }
+    } else if (error) {
       console.error("Error al guardar en Supabase:", error)
       return false
     }
@@ -88,3 +154,6 @@ export async function guardarRespuesta(respuesta: any) {
     supabaseOk,
   }
 }
+
+// Alias para compatibilidad
+export const guardarRespuestaLocal = guardarRespuesta

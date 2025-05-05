@@ -15,7 +15,6 @@ export async function POST(request: Request) {
     // Preparar la respuesta para guardar
     const respuesta = {
       id,
-      tipo_cuestionario: "reducido",
       created_at: data.created_at || new Date().toISOString(),
 
       // Datos demográficos
@@ -71,13 +70,13 @@ export async function POST(request: Request) {
       sjl: data.SJL || data.sjl,
       cronotipo: data.cronotipo,
 
-      // Campos específicos del cuestionario reducido
+      // Estos campos solo se guardan localmente, no en Supabase
+      // Se guardan como propiedades del objeto para mantener la compatibilidad
+      // pero no se enviarán a Supabase gracias al filtro en guardarRespuestaEnSupabase
       hora_preparado_dormir_lab: data.horaPreparadoDormirLaboral,
       hora_preparado_dormir_lib: data.horaPreparadoDormirLibre,
       usa_alarma_lab: data.usaAlarmaLaboral === "true",
       usa_alarma_lib: data.usaAlarmaLibre === "true",
-      razones_no_elegir_sueno: data.razonesNoElegirSueno === "true",
-      tipo_razones_no_elegir_sueno: data.tipoRazonesNoElegirSueno,
     }
 
     // Guardar la respuesta usando nuestra función mejorada
