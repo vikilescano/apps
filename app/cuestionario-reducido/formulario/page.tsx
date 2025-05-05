@@ -2,26 +2,29 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { v4 as uuidv4 } from "uuid"
+import { calcularResultados } from "@/lib/calculos"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Separator } from "@/components/ui/separator"
 import { toast } from "@/components/ui/use-toast"
-import { calcularResultados } from "@/lib/cronotipo-utils"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import Link from "next/link"
 import { Combobox } from "@/components/ui/combobox"
 import { provinciasArgentina, paises } from "@/lib/location-data"
-import { Checkbox } from "@/components/ui/checkbox"
 
-export default function CuestionarioReducidoFormularioPage() {
+export default function FormularioReducidoPage() {
   const router = useRouter()
-  const [isSubmitting, setIsSubmitting] = useState(false)
   const [step, setStep] = useState(1)
   const totalSteps = 4
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // Formulario simplificado con useState
+  // Estado del formulario
   const [formData, setFormData] = useState({
-    // Datos demográficos
+    // Datos demográficos (opcionales)
     edad: "",
     genero: "",
     provincia: "",
@@ -29,7 +32,6 @@ export default function CuestionarioReducidoFormularioPage() {
 
     // Días laborables
     horaAcostarseLaboral: "",
-    horaPreparadoDormirLaboral: "",
     minutosParaDormirseLaboral: "0",
     horaDespertarLaboral: "",
     minutosPararLevantarseLaboral: "0",
@@ -38,18 +40,19 @@ export default function CuestionarioReducidoFormularioPage() {
 
     // Días libres
     horaAcostarseLibre: "",
-    horaPreparadoDormirLibre: "",
     minutosParaDormirseLibre: "0",
     horaDespertarLibre: "",
     minutosPararLevantarseLibre: "0",
     usaAlarmaLibre: "",
     razonesNoElegirSueno: "",
-    tipoRazonesNoElegirSueno: [],
+    tipoRazonesNoElegirSueno: "",
 
-    // Hábitos y preferencias
+    // Preferencias
     prefiereOscuridadTotal: "",
     despiertaMejorConLuz: "",
-    actividadesAntesDormir: [],
+
+    // Actividades antes de dormir
+    actividadesAntesDormir: "",
     minutosLecturaAntesDormir: "0",
 
     // Tiempo al aire libre
@@ -70,108 +73,81 @@ export default function CuestionarioReducidoFormularioPage() {
     label: pais,
   }))
 
-  const handleInputChange = (e) => {
+  // Manejar cambios en los campos del formulario
+  const handleChange = (e) => {
     const { name, value } = e.target
-    setFormData({
-      ...formData,
-      [name]: value,
-    })
+    setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
+  // Manejar cambios en los campos de radio
   const handleRadioChange = (name, value) => {
-    setFormData({
-      ...formData,
-      [name]: value,
-    })
+    setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
+  // Manejar cambios en los combobox
   const handleComboboxChange = (name, value) => {
-    setFormData({
-      ...formData,
-      [name]: value,
-    })
+    setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
-  const handleCheckboxChange = (name, value, checked) => {
-    if (Array.isArray(formData[name])) {
-      setFormData({
-        ...formData,
-        [name]: checked ? [...formData[name], value] : formData[name].filter((item) => item !== value),
-      })
-    } else {
-      setFormData({
-        ...formData,
-        [name]: checked,
-      })
-    }
-  }
-
+  // Navegar al siguiente paso
   const nextStep = () => {
-    // Validación básica antes de avanzar
-    let isValid = true
-    let errorMessage = ""
-
-    // Validar campos según el paso actual
+    // Validar campos obligatorios según el paso actual
     if (step === 2) {
-      if (!formData.horaAcostarseLaboral) {
-        isValid = false
-        errorMessage = "Por favor ingresa la hora a la que te acuestas en días laborables"
-      } else if (!formData.horaDespertarLaboral) {
-        isValid = false
-        errorMessage = "Por favor ingresa la hora a la que te despiertas en días laborables"
-      } else if (!formData.usaAlarmaLaboral) {
-        isValid = false
-        errorMessage = "Por favor indica si usas un despertador en días laborables"
-      } else if (formData.usaAlarmaLaboral === "true" && !formData.despiertaAntesAlarmaLaboral) {
-        isValid = false
-        errorMessage = "Por favor indica si te despiertas antes de que suene la alarma"
+      // En el paso 2, solo validamos los campos obligatorios de días laborables
+      if (!formData.horaAcostarseLaboral || !formData.horaDespertarLaboral) {
+        toast({
+          title: "Campos obligatorios",
+          description: "Por favor completa las horas de acostarse y despertar para días laborables.",
+          variant: "destructive",
+        })
+        return
       }
     } else if (step === 3) {
-      if (!formData.horaAcostarseLibre) {
-        isValid = false
-        errorMessage = "Por favor ingresa la hora a la que te acuestas en días libres"
-      } else if (!formData.horaDespertarLibre) {
-        isValid = false
-        errorMessage = "Por favor ingresa la hora a la que te despiertas en días libres"
-      } else if (!formData.usaAlarmaLibre) {
-        isValid = false
-        errorMessage = "Por favor indica si usas un despertador en días libres"
-      } else if (!formData.razonesNoElegirSueno) {
-        isValid = false
-        errorMessage = "Por favor indica si hay razones por las que no puedes elegir libremente tus horarios de sueño"
-      } else if (formData.razonesNoElegirSueno === "true" && formData.tipoRazonesNoElegirSueno.length === 0) {
-        isValid = false
-        errorMessage =
-          "Por favor selecciona al menos una razón por la que no puedes elegir libremente tus horarios de sueño"
+      // En el paso 3, validamos los campos obligatorios de días libres
+      if (!formData.horaAcostarseLibre || !formData.horaDespertarLibre) {
+        toast({
+          title: "Campos obligatorios",
+          description: "Por favor completa las horas de acostarse y despertar para días libres.",
+          variant: "destructive",
+        })
+        return
       }
     }
 
-    if (!isValid) {
-      toast({
-        title: "Por favor completa todos los campos",
-        description: errorMessage,
-        variant: "destructive",
-      })
-      return
+    if (step < totalSteps) {
+      setStep(step + 1)
+      window.scrollTo(0, 0)
+    }
+  }
+
+  // Navegar al paso anterior
+  const prevStep = () => {
+    if (step > 1) {
+      setStep(step - 1)
+      window.scrollTo(0, 0)
+    }
+  }
+
+  // Manejar el envío del formulario
+  const handleSubmit = async (event) => {
+    // Asegurarse de que event sea un objeto con preventDefault
+    if (event && typeof event.preventDefault === "function") {
+      event.preventDefault()
     }
 
-    setStep(step + 1)
-    window.scrollTo(0, 0)
-  }
+    // Mostrar un mensaje para confirmar que se ha hecho clic en el botón
+    console.log("Botón Ver Resultados clickeado")
 
-  const prevStep = () => {
-    setStep(step - 1)
-    window.scrollTo(0, 0)
-  }
-
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-
-    // Validación final antes de enviar
-    if (!formData.prefiereOscuridadTotal || !formData.despiertaMejorConLuz) {
+    // Validación final antes de enviar - solo los campos esenciales
+    if (
+      !formData.horaAcostarseLaboral ||
+      !formData.horaDespertarLaboral ||
+      !formData.horaAcostarseLibre ||
+      !formData.horaDespertarLibre
+    ) {
       toast({
-        title: "Por favor completa todos los campos",
-        description: "Debes responder todas las preguntas sobre preferencias de sueño",
+        title: "Por favor completa todos los campos obligatorios",
+        description: "Debes completar las horas de acostarse y despertar tanto para días laborables como libres",
         variant: "destructive",
       })
       return
@@ -180,12 +156,14 @@ export default function CuestionarioReducidoFormularioPage() {
     setIsSubmitting(true)
 
     try {
+      console.log("Preparando datos para cálculos...")
+
       // Convertir los datos del formulario al formato esperado por calcularResultados
       const datosParaCalculos = {
         horaAcostarseLaboral: formData.horaAcostarseLaboral,
-        minutosParaDormirseLaboral: Number.parseInt(formData.minutosParaDormirseLaboral) || 0,
+        minutosParaDormirseLaboral: Number.parseInt(formData.minutosParaDormirseLaboral || "0") || 0,
         horaDespertarLaboral: formData.horaDespertarLaboral,
-        minutosPararDespertarLaboral: Number.parseInt(formData.minutosPararLevantarseLaboral) || 0,
+        minutosPararDespertarLaboral: Number.parseInt(formData.minutosPararLevantarseLaboral || "0") || 0,
         despertarAntesAlarmaLaboral:
           formData.usaAlarmaLaboral === "true" ? formData.despiertaAntesAlarmaLaboral === "true" : null,
         horaCompletamenteDespiertaLaboral: formData.horaDespertarLaboral,
@@ -194,9 +172,9 @@ export default function CuestionarioReducidoFormularioPage() {
         duracionSiestaDiaLaboral: null,
 
         horaAcostarseLibre: formData.horaAcostarseLibre,
-        minutosParaDormirseLibre: Number.parseInt(formData.minutosParaDormirseLibre) || 0,
+        minutosParaDormirseLibre: Number.parseInt(formData.minutosParaDormirseLibre || "0") || 0,
         horaDespertarLibre: formData.horaDespertarLibre,
-        minutosPararDespertarLibre: Number.parseInt(formData.minutosPararLevantarseLibre) || 0,
+        minutosPararDespertarLibre: Number.parseInt(formData.minutosPararLevantarseLibre || "0") || 0,
         horaSuenoDespetarLibre: formData.horaDespertarLibre,
         intentaDormirMasLibre: false,
         minutosExtraSuenoLibre: null,
@@ -206,27 +184,34 @@ export default function CuestionarioReducidoFormularioPage() {
         duracionSiestaDiaLibre: null,
       }
 
+      console.log("Calculando resultados...")
       // Calcular resultados
       const resultados = calcularResultados(datosParaCalculos)
+      console.log("Resultados calculados:", resultados)
 
-      // Preparar datos para enviar
+      // Generar un ID único
+      const id = uuidv4()
+
+      // Preparar datos completos
       const datosCompletos = {
+        id,
+        created_at: new Date().toISOString(),
         edad: formData.edad ? Number.parseInt(formData.edad) : null,
         genero: formData.genero || null,
         provincia: formData.provincia || null,
         pais: formData.pais || null,
 
         horaAcostarseLaboral: formData.horaAcostarseLaboral,
-        minutosParaDormirseLaboral: Number.parseInt(formData.minutosParaDormirseLaboral) || 0,
+        minutosParaDormirseLaboral: Number.parseInt(formData.minutosParaDormirseLaboral || "0") || 0,
         horaDespertarLaboral: formData.horaDespertarLaboral,
-        minutosPararLevantarseLaboral: Number.parseInt(formData.minutosPararLevantarseLaboral) || 0,
+        minutosPararLevantarseLaboral: Number.parseInt(formData.minutosPararLevantarseLaboral || "0") || 0,
         usaAlarmaLaboral: formData.usaAlarmaLaboral === "true",
         despiertaAntesAlarmaLaboral: formData.despiertaAntesAlarmaLaboral === "true",
 
         horaAcostarseLibre: formData.horaAcostarseLibre,
-        minutosParaDormirseLibre: Number.parseInt(formData.minutosParaDormirseLibre) || 0,
+        minutosParaDormirseLibre: Number.parseInt(formData.minutosParaDormirseLibre || "0") || 0,
         horaDespertarLibre: formData.horaDespertarLibre,
-        minutosPararLevantarseLibre: Number.parseInt(formData.minutosPararLevantarseLibre) || 0,
+        minutosPararLevantarseLibre: Number.parseInt(formData.minutosPararLevantarseLibre || "0") || 0,
         usaAlarmaLibre: formData.usaAlarmaLibre === "true",
         razonesNoElegirSueno: formData.razonesNoElegirSueno === "true",
         tipoRazonesNoElegirSueno: formData.tipoRazonesNoElegirSueno,
@@ -236,42 +221,531 @@ export default function CuestionarioReducidoFormularioPage() {
 
         // Actividades antes de dormir
         actividadesAntesDormir: formData.actividadesAntesDormir,
-        minutosLecturaAntesDormir: Number.parseInt(formData.minutosLecturaAntesDormir) || 0,
+        minutosLecturaAntesDormir: Number.parseInt(formData.minutosLecturaAntesDormir || "0") || 0,
 
-        horasAireLibreDiasLaborales: Number.parseInt(formData.horasAireLibreDiasLaborales) || 0,
-        minutosAireLibreDiasLaborales: Number.parseInt(formData.minutosAireLibreDiasLaborales) || 0,
-        horasAireLibreDiasLibres: Number.parseInt(formData.horasAireLibreDiasLibres) || 0,
-        minutosAireLibreDiasLibres: Number.parseInt(formData.minutosAireLibreDiasLibres) || 0,
+        horasAireLibreDiasLaborales: Number.parseInt(formData.horasAireLibreDiasLaborales || "0") || 0,
+        minutosAireLibreDiasLaborales: Number.parseInt(formData.minutosAireLibreDiasLaborales || "0") || 0,
+        horasAireLibreDiasLibres: Number.parseInt(formData.horasAireLibreDiasLibres || "0") || 0,
+        minutosAireLibreDiasLibres: Number.parseInt(formData.minutosAireLibreDiasLibres || "0") || 0,
 
         // Incluir resultados calculados
         ...resultados,
+
+        // Añadir un campo para identificar que es la versión reducida
+        tipo_cuestionario: "reducido",
       }
 
-      // Enviar datos al servidor
-      const response = await fetch("/api/cuestionario-reducido", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(datosCompletos),
+      // Guardar en localStorage
+      localStorage.setItem("cronotipo_resultados", JSON.stringify(datosCompletos))
+
+      // Guardar en sessionStorage con el ID específico
+      sessionStorage.setItem(`cronotipo_resultados_${id}`, JSON.stringify(datosCompletos))
+
+      // Intentar enviar a la API, pero no esperar la respuesta
+      try {
+        fetch("/api/cuestionario-reducido", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(datosCompletos),
+        }).catch((error) => {
+          console.error("Error al enviar datos al servidor (no bloqueante):", error)
+        })
+      } catch (fetchError) {
+        console.error("Error al iniciar la solicitud al servidor:", fetchError)
+      }
+
+      // Mostrar mensaje de éxito
+      toast({
+        title: "Formulario enviado correctamente",
+        description: "Redirigiendo a la página de resultados...",
       })
-
-      if (!response.ok) {
-        throw new Error("Error al enviar los datos")
-      }
-
-      const data = await response.json()
 
       // Redirigir a la página de resultados
-      router.push(`/resultados/${data.id}`)
+      console.log("Redirigiendo a:", `/resultados/${id}`)
+      router.push(`/resultados/${id}`)
     } catch (error) {
-      console.error("Error:", error)
-      toast({
-        title: "Error",
-        description: "Hubo un problema al enviar el cuestionario. Por favor, intentalo de nuevo.",
-        variant: "destructive",
-      })
-      setIsSubmitting(false)
+      console.error("Error detallado:", error)
+
+      // Generar un ID de emergencia
+      const emergencyId = uuidv4()
+
+      // Intentar guardar los resultados básicos en localStorage
+      try {
+        const resultadosBasicos = {
+          id: emergencyId,
+          created_at: new Date().toISOString(),
+          horaAcostarseLaboral: formData.horaAcostarseLaboral,
+          horaDespertarLaboral: formData.horaDespertarLaboral,
+          horaAcostarseLibre: formData.horaAcostarseLibre,
+          horaDespertarLibre: formData.horaDespertarLibre,
+          cronotipo: "No calculado debido a un error",
+        }
+
+        localStorage.setItem("cronotipo_resultados", JSON.stringify(resultadosBasicos))
+        sessionStorage.setItem(`cronotipo_resultados_${emergencyId}`, JSON.stringify(resultadosBasicos))
+
+        toast({
+          title: "Error al calcular resultados",
+          description: "Se guardó información básica localmente. Serás redirigido a la página de resultados.",
+          variant: "destructive",
+        })
+
+        router.push(`/resultados/${emergencyId}`)
+      } catch (localStorageError) {
+        toast({
+          title: "Error",
+          description: `Hubo un problema al enviar el cuestionario y no se pudieron guardar los datos: ${error.message}`,
+          variant: "destructive",
+        })
+        setIsSubmitting(false)
+      }
+    }
+  }
+
+  // Renderizar el paso actual del formulario
+  const renderStep = () => {
+    switch (step) {
+      case 1:
+        return (
+          <Card>
+            <CardHeader>
+              <CardTitle>Información Personal</CardTitle>
+              <CardDescription>Podés completar esta información si querés, pero no es obligatoria.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div>
+                <Label htmlFor="edad">
+                  Edad <span className="text-gray-500 text-sm">(opcional)</span>
+                </Label>
+                <Input
+                  id="edad"
+                  name="edad"
+                  type="number"
+                  min="1"
+                  max="120"
+                  value={formData.edad}
+                  onChange={handleChange}
+                  className="mt-1"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>
+                  Género <span className="text-gray-500 text-sm">(opcional)</span>
+                </Label>
+                <RadioGroup value={formData.genero} onValueChange={(value) => handleRadioChange("genero", value)}>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="femenino" id="genero-femenino" />
+                    <Label htmlFor="genero-femenino">Femenino</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="masculino" id="genero-masculino" />
+                    <Label htmlFor="genero-masculino">Masculino</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="otro" id="genero-otro" />
+                    <Label htmlFor="genero-otro">Otro</Label>
+                  </div>
+                </RadioGroup>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="pais">
+                    País <span className="text-gray-500 text-sm">(opcional)</span>
+                  </Label>
+                  <Combobox
+                    options={paisOptions}
+                    value={formData.pais}
+                    onChange={(value) => handleComboboxChange("pais", value)}
+                    placeholder="Seleccionar país"
+                    emptyMessage="No se encontraron países."
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="provincia">
+                    Provincia (si estás en Argentina) <span className="text-gray-500 text-sm">(opcional)</span>
+                  </Label>
+                  <Combobox
+                    options={provinciaOptions}
+                    value={formData.provincia}
+                    onChange={(value) => handleComboboxChange("provincia", value)}
+                    placeholder="Seleccionar provincia"
+                    emptyMessage="No se encontraron provincias."
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )
+
+      case 2:
+        return (
+          <Card>
+            <CardHeader>
+              <CardTitle>Días Laborables</CardTitle>
+              <CardDescription>
+                Por favor responde las siguientes preguntas sobre tus hábitos de sueño en días laborables.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="horaAcostarseLaboral" className="flex items-center">
+                    <span className="text-red-500 mr-1">*</span>
+                    ¿A qué hora te acuestas en días laborables?
+                  </Label>
+                  <Input
+                    id="horaAcostarseLaboral"
+                    name="horaAcostarseLaboral"
+                    type="time"
+                    value={formData.horaAcostarseLaboral}
+                    onChange={handleChange}
+                    required
+                    className="mt-1"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="minutosParaDormirseLaboral">
+                    ¿Cuántos minutos tardas en dormirte? <span className="text-gray-500 text-sm">(opcional)</span>
+                  </Label>
+                  <Input
+                    id="minutosParaDormirseLaboral"
+                    name="minutosParaDormirseLaboral"
+                    type="number"
+                    min="0"
+                    value={formData.minutosParaDormirseLaboral}
+                    onChange={handleChange}
+                    className="mt-1"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="horaDespertarLaboral" className="flex items-center">
+                    <span className="text-red-500 mr-1">*</span>
+                    ¿A qué hora te despiertas en días laborables?
+                  </Label>
+                  <Input
+                    id="horaDespertarLaboral"
+                    name="horaDespertarLaboral"
+                    type="time"
+                    value={formData.horaDespertarLaboral}
+                    onChange={handleChange}
+                    required
+                    className="mt-1"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="minutosPararLevantarseLaboral">
+                    ¿Cuántos minutos tardas en levantarte? <span className="text-gray-500 text-sm">(opcional)</span>
+                  </Label>
+                  <Input
+                    id="minutosPararLevantarseLaboral"
+                    name="minutosPararLevantarseLaboral"
+                    type="number"
+                    min="0"
+                    value={formData.minutosPararLevantarseLaboral}
+                    onChange={handleChange}
+                    className="mt-1"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>
+                    ¿Usas alarma para despertarte? <span className="text-gray-500 text-sm">(opcional)</span>
+                  </Label>
+                  <RadioGroup
+                    value={formData.usaAlarmaLaboral}
+                    onValueChange={(value) => handleRadioChange("usaAlarmaLaboral", value)}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="true" id="alarma-lab-si" />
+                      <Label htmlFor="alarma-lab-si">Sí</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="false" id="alarma-lab-no" />
+                      <Label htmlFor="alarma-lab-no">No</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+
+                {formData.usaAlarmaLaboral === "true" && (
+                  <div className="space-y-2">
+                    <Label>
+                      ¿Te despiertas antes de que suene la alarma?{" "}
+                      <span className="text-gray-500 text-sm">(opcional)</span>
+                    </Label>
+                    <RadioGroup
+                      value={formData.despiertaAntesAlarmaLaboral}
+                      onValueChange={(value) => handleRadioChange("despiertaAntesAlarmaLaboral", value)}
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="true" id="antes-alarma-lab-si" />
+                        <Label htmlFor="antes-alarma-lab-si">Sí, frecuentemente</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="false" id="antes-alarma-lab-no" />
+                        <Label htmlFor="antes-alarma-lab-no">No, rara vez</Label>
+                      </div>
+                    </RadioGroup>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )
+
+      case 3:
+        return (
+          <Card>
+            <CardHeader>
+              <CardTitle>Días Libres</CardTitle>
+              <CardDescription>
+                Por favor responde las siguientes preguntas sobre tus hábitos de sueño en días libres (fines de semana o
+                días sin obligaciones).
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="horaAcostarseLibre" className="flex items-center">
+                    <span className="text-red-500 mr-1">*</span>
+                    ¿A qué hora te acuestas en días libres?
+                  </Label>
+                  <Input
+                    id="horaAcostarseLibre"
+                    name="horaAcostarseLibre"
+                    type="time"
+                    value={formData.horaAcostarseLibre}
+                    onChange={handleChange}
+                    required
+                    className="mt-1"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="minutosParaDormirseLibre">
+                    ¿Cuántos minutos tardas en dormirte? <span className="text-gray-500 text-sm">(opcional)</span>
+                  </Label>
+                  <Input
+                    id="minutosParaDormirseLibre"
+                    name="minutosParaDormirseLibre"
+                    type="number"
+                    min="0"
+                    value={formData.minutosParaDormirseLibre}
+                    onChange={handleChange}
+                    className="mt-1"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="horaDespertarLibre" className="flex items-center">
+                    <span className="text-red-500 mr-1">*</span>
+                    ¿A qué hora te despiertas en días libres?
+                  </Label>
+                  <Input
+                    id="horaDespertarLibre"
+                    name="horaDespertarLibre"
+                    type="time"
+                    value={formData.horaDespertarLibre}
+                    onChange={handleChange}
+                    required
+                    className="mt-1"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="minutosPararLevantarseLibre">
+                    ¿Cuántos minutos tardas en levantarte? <span className="text-gray-500 text-sm">(opcional)</span>
+                  </Label>
+                  <Input
+                    id="minutosPararLevantarseLibre"
+                    name="minutosPararLevantarseLibre"
+                    type="number"
+                    min="0"
+                    value={formData.minutosPararLevantarseLibre}
+                    onChange={handleChange}
+                    className="mt-1"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>
+                    ¿Usas alarma para despertarte en días libres?{" "}
+                    <span className="text-gray-500 text-sm">(opcional)</span>
+                  </Label>
+                  <RadioGroup
+                    value={formData.usaAlarmaLibre}
+                    onValueChange={(value) => handleRadioChange("usaAlarmaLibre", value)}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="true" id="alarma-lib-si" />
+                      <Label htmlFor="alarma-lib-si">Sí</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="false" id="alarma-lib-no" />
+                      <Label htmlFor="alarma-lib-no">No</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>
+                    ¿Hay razones por las que no puedes elegir libremente tu horario de sueño en días libres?{" "}
+                    <span className="text-gray-500 text-sm">(opcional)</span>
+                  </Label>
+                  <RadioGroup
+                    value={formData.razonesNoElegirSueno}
+                    onValueChange={(value) => handleRadioChange("razonesNoElegirSueno", value)}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="true" id="razones-si" />
+                      <Label htmlFor="razones-si">Sí</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="false" id="razones-no" />
+                      <Label htmlFor="razones-no">No</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+
+                {formData.razonesNoElegirSueno === "true" && (
+                  <div className="space-y-2">
+                    <Label>
+                      ¿Qué tipo de razones? <span className="text-gray-500 text-sm">(opcional)</span>
+                    </Label>
+                    <RadioGroup
+                      value={formData.tipoRazonesNoElegirSueno}
+                      onValueChange={(value) => handleRadioChange("tipoRazonesNoElegirSueno", value)}
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="hijos" id="razones-hijos" />
+                        <Label htmlFor="razones-hijos">Hijos/mascotas</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="hobbies" id="razones-hobbies" />
+                        <Label htmlFor="razones-hobbies">Hobbies/actividades</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="otras" id="razones-otras" />
+                        <Label htmlFor="razones-otras">Otras</Label>
+                      </div>
+                    </RadioGroup>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )
+
+      case 4:
+        return (
+          <Card>
+            <CardHeader>
+              <CardTitle>Preferencias de sueño</CardTitle>
+              <CardDescription>
+                Por favor responde las siguientes preguntas sobre tus preferencias de sueño.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>
+                    ¿Prefieres dormir en una habitación completamente oscura?{" "}
+                    <span className="text-gray-500 text-sm">(opcional)</span>
+                  </Label>
+                  <RadioGroup
+                    value={formData.prefiereOscuridadTotal}
+                    onValueChange={(value) => handleRadioChange("prefiereOscuridadTotal", value)}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="true" id="oscuridad-si" />
+                      <Label htmlFor="oscuridad-si">Sí</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="false" id="oscuridad-no" />
+                      <Label htmlFor="oscuridad-no">No</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>
+                    ¿Te despiertas más fácilmente cuando la luz de la mañana entra en tu habitación?{" "}
+                    <span className="text-gray-500 text-sm">(opcional)</span>
+                  </Label>
+                  <RadioGroup
+                    value={formData.despiertaMejorConLuz}
+                    onValueChange={(value) => handleRadioChange("despiertaMejorConLuz", value)}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="true" id="luz-si" />
+                      <Label htmlFor="luz-si">Sí</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="false" id="luz-no" />
+                      <Label htmlFor="luz-no">No</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-2">
+                  <Label>
+                    ¿Qué actividades realizas antes de dormir? <span className="text-gray-500 text-sm">(opcional)</span>
+                  </Label>
+                  <RadioGroup
+                    value={formData.actividadesAntesDormir}
+                    onValueChange={(value) => handleRadioChange("actividadesAntesDormir", value)}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="leer" id="act-leer" />
+                      <Label htmlFor="act-leer">Leer</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="pantallas" id="act-pantallas" />
+                      <Label htmlFor="act-pantallas">Usar pantallas (celular, TV, computadora)</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="musica" id="act-musica" />
+                      <Label htmlFor="act-musica">Escuchar música</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="otras" id="act-otras" />
+                      <Label htmlFor="act-otras">Otras actividades</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+
+                {formData.actividadesAntesDormir === "leer" && (
+                  <div>
+                    <Label htmlFor="minutosLecturaAntesDormir">
+                      ¿Cuántos minutos lees antes de dormir? <span className="text-gray-500 text-sm">(opcional)</span>
+                    </Label>
+                    <Input
+                      id="minutosLecturaAntesDormir"
+                      name="minutosLecturaAntesDormir"
+                      type="number"
+                      min="0"
+                      value={formData.minutosLecturaAntesDormir}
+                      onChange={handleChange}
+                      className="mt-1"
+                    />
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )
+
+      default:
+        return null
     }
   }
 
@@ -291,482 +765,38 @@ export default function CuestionarioReducidoFormularioPage() {
           </div>
         </div>
 
-        <form onSubmit={(e) => e.preventDefault()} className="space-y-8">
-          {/* Paso 1: Datos demográficos */}
-          {step === 1 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Información Personal (opcional)</CardTitle>
-                <CardDescription>Podés completar esta información si querés, pero no es obligatoria.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div>
-                  <Label htmlFor="edad">Edad</Label>
-                  <Input id="edad" name="edad" type="number" value={formData.edad} onChange={handleInputChange} />
-                </div>
+        <form onSubmit={(e) => e.preventDefault()}>
+          <div className="space-y-8">
+            <Tabs defaultValue="cuestionario" className="w-full">
+              <TabsList className="grid w-full grid-cols-1">
+                <TabsTrigger value="cuestionario">Cuestionario</TabsTrigger>
+              </TabsList>
+              <TabsContent value="cuestionario" className="mt-6">
+                {renderStep()}
+              </TabsContent>
+            </Tabs>
 
-                <div>
-                  <Label>Género</Label>
-                  <RadioGroup value={formData.genero} onValueChange={(value) => handleRadioChange("genero", value)}>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="femenino" id="femenino" />
-                      <Label htmlFor="femenino">Femenino</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="masculino" id="masculino" />
-                      <Label htmlFor="masculino">Masculino</Label>
-                    </div>
-                  </RadioGroup>
-                </div>
+            <div className="flex justify-between">
+              {step > 1 ? (
+                <Button type="button" variant="outline" onClick={prevStep}>
+                  Anterior
+                </Button>
+              ) : (
+                <Link href="/cuestionario-reducido">
+                  <Button variant="outline">Volver</Button>
+                </Link>
+              )}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="pais">País</Label>
-                    <Combobox
-                      options={paisOptions}
-                      value={formData.pais}
-                      onChange={(value) => handleComboboxChange("pais", value)}
-                      placeholder="Seleccionar país"
-                      emptyMessage="No se encontraron países."
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="provincia">Provincia (si estás en Argentina)</Label>
-                    <Combobox
-                      options={provinciaOptions}
-                      value={formData.provincia}
-                      onChange={(value) => handleComboboxChange("provincia", value)}
-                      placeholder="Seleccionar provincia"
-                      emptyMessage="No se encontraron provincias."
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Paso 2: Días laborables */}
-          {step === 2 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Días laborables</CardTitle>
-                <CardDescription>
-                  Por favor respondé las siguientes preguntas sobre tus hábitos de sueño en días laborables.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div>
-                  <Label htmlFor="horaAcostarseLaboral">Me acuesto a las...</Label>
-                  <Input
-                    id="horaAcostarseLaboral"
-                    name="horaAcostarseLaboral"
-                    type="time"
-                    value={formData.horaAcostarseLaboral}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="horaPreparadoDormirLaboral">Me preparo para dormir a las...</Label>
-                  <Input
-                    id="horaPreparadoDormirLaboral"
-                    name="horaPreparadoDormirLaboral"
-                    type="time"
-                    value={formData.horaPreparadoDormirLaboral}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="minutosParaDormirseLaboral">Necesito... minutos para quedarme dormido/a</Label>
-                  <Input
-                    id="minutosParaDormirseLaboral"
-                    name="minutosParaDormirseLaboral"
-                    type="number"
-                    value={formData.minutosParaDormirseLaboral}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="horaDespertarLaboral">Me despierto a las...</Label>
-                  <Input
-                    id="horaDespertarLaboral"
-                    name="horaDespertarLaboral"
-                    type="time"
-                    value={formData.horaDespertarLaboral}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="minutosPararLevantarseLaboral">Después de... minutos me levanto</Label>
-                  <Input
-                    id="minutosPararLevantarseLaboral"
-                    name="minutosPararLevantarseLaboral"
-                    type="number"
-                    value={formData.minutosPararLevantarseLaboral}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-
-                <div>
-                  <Label>Uso un despertador en días laborables:</Label>
-                  <RadioGroup
-                    value={formData.usaAlarmaLaboral}
-                    onValueChange={(value) => handleRadioChange("usaAlarmaLaboral", value)}
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="true" id="usaAlarmaLaboralSi" />
-                      <Label htmlFor="usaAlarmaLaboralSi">Sí</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="false" id="usaAlarmaLaboralNo" />
-                      <Label htmlFor="usaAlarmaLaboralNo">No</Label>
-                    </div>
-                  </RadioGroup>
-                </div>
-
-                {formData.usaAlarmaLaboral === "true" && (
-                  <div>
-                    <Label>Regularmente me despierto ANTES de que suene la alarma:</Label>
-                    <RadioGroup
-                      value={formData.despiertaAntesAlarmaLaboral}
-                      onValueChange={(value) => handleRadioChange("despiertaAntesAlarmaLaboral", value)}
-                    >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="true" id="despiertaAntesSi" />
-                        <Label htmlFor="despiertaAntesSi">Sí</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="false" id="despiertaAntesNo" />
-                        <Label htmlFor="despiertaAntesNo">No</Label>
-                      </div>
-                    </RadioGroup>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Paso 3: Días libres */}
-          {step === 3 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Días libres</CardTitle>
-                <CardDescription>
-                  Por favor respondé las siguientes preguntas sobre tus hábitos de sueño en días libres.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div>
-                  <Label htmlFor="horaAcostarseLibre">Me acuesto a las...</Label>
-                  <Input
-                    id="horaAcostarseLibre"
-                    name="horaAcostarseLibre"
-                    type="time"
-                    value={formData.horaAcostarseLibre}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="horaPreparadoDormirLibre">Me preparo para dormir a las...</Label>
-                  <Input
-                    id="horaPreparadoDormirLibre"
-                    name="horaPreparadoDormirLibre"
-                    type="time"
-                    value={formData.horaPreparadoDormirLibre}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="minutosParaDormirseLibre">Necesito... minutos para quedarme dormido/a</Label>
-                  <Input
-                    id="minutosParaDormirseLibre"
-                    name="minutosParaDormirseLibre"
-                    type="number"
-                    value={formData.minutosParaDormirseLibre}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="horaDespertarLibre">Me despierto a las...</Label>
-                  <Input
-                    id="horaDespertarLibre"
-                    name="horaDespertarLibre"
-                    type="time"
-                    value={formData.horaDespertarLibre}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="minutosPararLevantarseLibre">Después de... minutos me levanto</Label>
-                  <Input
-                    id="minutosPararLevantarseLibre"
-                    name="minutosPararLevantarseLibre"
-                    type="number"
-                    value={formData.minutosPararLevantarseLibre}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-
-                <div>
-                  <Label>Mi hora de despertar (en días libres) se debe al uso de un despertador:</Label>
-                  <RadioGroup
-                    value={formData.usaAlarmaLibre}
-                    onValueChange={(value) => handleRadioChange("usaAlarmaLibre", value)}
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="true" id="usaAlarmaLibreSi" />
-                      <Label htmlFor="usaAlarmaLibreSi">Sí</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="false" id="usaAlarmaLibreNo" />
-                      <Label htmlFor="usaAlarmaLibreNo">No</Label>
-                    </div>
-                  </RadioGroup>
-                </div>
-
-                <div>
-                  <Label>
-                    Hay razones particulares por las que no puedo elegir libremente mis horarios de sueño en días
-                    libres:
-                  </Label>
-                  <RadioGroup
-                    value={formData.razonesNoElegirSueno}
-                    onValueChange={(value) => handleRadioChange("razonesNoElegirSueno", value)}
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="true" id="razonesNoElegirSuenoSi" />
-                      <Label htmlFor="razonesNoElegirSuenoSi">Sí</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="false" id="razonesNoElegirSuenoNo" />
-                      <Label htmlFor="razonesNoElegirSuenoNo">No</Label>
-                    </div>
-                  </RadioGroup>
-                </div>
-
-                {formData.razonesNoElegirSueno === "true" && (
-                  <div>
-                    <Label className="mb-2 block">Selecciona las razones:</Label>
-                    <div className="grid grid-cols-1 gap-2">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="razon-ninos-mascotas"
-                          checked={formData.tipoRazonesNoElegirSueno.includes("ninos_mascotas")}
-                          onCheckedChange={(checked) =>
-                            handleCheckboxChange("tipoRazonesNoElegirSueno", "ninos_mascotas", checked)
-                          }
-                        />
-                        <Label htmlFor="razon-ninos-mascotas">Niño(s)/mascota(s)</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="razon-hobbies"
-                          checked={formData.tipoRazonesNoElegirSueno.includes("hobbies")}
-                          onCheckedChange={(checked) =>
-                            handleCheckboxChange("tipoRazonesNoElegirSueno", "hobbies", checked)
-                          }
-                        />
-                        <Label htmlFor="razon-hobbies">Hobbies</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="razon-otros"
-                          checked={formData.tipoRazonesNoElegirSueno.includes("otros")}
-                          onCheckedChange={(checked) =>
-                            handleCheckboxChange("tipoRazonesNoElegirSueno", "otros", checked)
-                          }
-                        />
-                        <Label htmlFor="razon-otros">Otros</Label>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Paso 4: Hábitos y preferencias + Tiempo al aire libre */}
-          {step === 4 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Hábitos y preferencias</CardTitle>
-                <CardDescription>
-                  Por favor respondé las siguientes preguntas sobre tus hábitos antes de dormir y preferencias.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div>
-                  <Label>Prefiero dormir en una habitación completamente oscura</Label>
-                  <RadioGroup
-                    value={formData.prefiereOscuridadTotal}
-                    onValueChange={(value) => handleRadioChange("prefiereOscuridadTotal", value)}
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="true" id="oscuridadSi" />
-                      <Label htmlFor="oscuridadSi">Sí</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="false" id="oscuridadNo" />
-                      <Label htmlFor="oscuridadNo">No</Label>
-                    </div>
-                  </RadioGroup>
-                </div>
-
-                <div>
-                  <Label>Me despierto más fácilmente cuando la luz de la mañana entra en mi habitación</Label>
-                  <RadioGroup
-                    value={formData.despiertaMejorConLuz}
-                    onValueChange={(value) => handleRadioChange("despiertaMejorConLuz", value)}
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="true" id="luzSi" />
-                      <Label htmlFor="luzSi">Sí</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="false" id="luzNo" />
-                      <Label htmlFor="luzNo">No</Label>
-                    </div>
-                  </RadioGroup>
-                </div>
-
-                <div>
-                  <Label className="mb-2 block">
-                    Una vez que estoy en la cama, me gustaría... (podés seleccionar varias opciones)
-                  </Label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {[
-                      "leer",
-                      "mirar una serie/película",
-                      "usar redes sociales",
-                      "escuchar música",
-                      "meditar",
-                      "otras",
-                      "ninguna",
-                    ].map((actividad) => (
-                      <div key={actividad} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`actividad-${actividad}`}
-                          checked={formData.actividadesAntesDormir.includes(actividad)}
-                          onCheckedChange={(checked) =>
-                            handleCheckboxChange("actividadesAntesDormir", actividad, checked)
-                          }
-                        />
-                        <Label htmlFor={`actividad-${actividad}`}>{actividad}</Label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <Label htmlFor="minutosLecturaAntesDormir">Durante... minutos</Label>
-                  <Input
-                    id="minutosLecturaAntesDormir"
-                    name="minutosLecturaAntesDormir"
-                    type="number"
-                    value={formData.minutosLecturaAntesDormir}
-                    onChange={handleInputChange}
-                  />
-                </div>
-
-                <div className="pt-6">
-                  <h3 className="text-lg font-medium mb-4">Tiempo al aire libre</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    ¿Cuánto tiempo al día pasás en promedio al aire libre (realmente al aire libre){" "}
-                    <strong>expuesto a la luz del día</strong>?
-                  </p>
-
-                  <h4 className="font-medium mb-2">En días laborables:</h4>
-                  <div className="grid grid-cols-2 gap-4 mb-4">
-                    <div>
-                      <Label htmlFor="horasAireLibreDiasLaborales">Horas</Label>
-                      <Input
-                        id="horasAireLibreDiasLaborales"
-                        name="horasAireLibreDiasLaborales"
-                        type="number"
-                        value={formData.horasAireLibreDiasLaborales}
-                        onChange={handleInputChange}
-                        required
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="minutosAireLibreDiasLaborales">Minutos</Label>
-                      <Input
-                        id="minutosAireLibreDiasLaborales"
-                        name="minutosAireLibreDiasLaborales"
-                        type="number"
-                        value={formData.minutosAireLibreDiasLaborales}
-                        onChange={handleInputChange}
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <h4 className="font-medium mb-2">En días libres:</h4>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="horasAireLibreDiasLibres">Horas</Label>
-                      <Input
-                        id="horasAireLibreDiasLibres"
-                        name="horasAireLibreDiasLibres"
-                        type="number"
-                        value={formData.horasAireLibreDiasLibres}
-                        onChange={handleInputChange}
-                        required
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="minutosAireLibreDiasLibres">Minutos</Label>
-                      <Input
-                        id="minutosAireLibreDiasLibres"
-                        name="minutosAireLibreDiasLibres"
-                        type="number"
-                        value={formData.minutosAireLibreDiasLibres}
-                        onChange={handleInputChange}
-                        required
-                      />
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          <div className="flex justify-between">
-            {step > 1 ? (
-              <Button type="button" variant="outline" onClick={prevStep}>
-                Anterior
-              </Button>
-            ) : (
-              <div></div>
-            )}
-
-            {step < totalSteps ? (
-              <Button type="button" onClick={nextStep}>
-                Siguiente
-              </Button>
-            ) : (
-              <Button type="button" onClick={handleSubmit} disabled={isSubmitting}>
-                {isSubmitting ? "Enviando..." : "Ver Resultados"}
-              </Button>
-            )}
+              {step < totalSteps ? (
+                <Button type="button" onClick={nextStep}>
+                  Siguiente
+                </Button>
+              ) : (
+                <Button type="button" onClick={handleSubmit} disabled={isSubmitting}>
+                  {isSubmitting ? "Enviando..." : "Ver Resultados"}
+                </Button>
+              )}
+            </div>
           </div>
         </form>
       </div>

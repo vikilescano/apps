@@ -1,11 +1,11 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useParams } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { decimalAHora } from "@/lib/cronotipo-utils"
+import { decimalAHora } from "@/lib/calculos"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Progress } from "@/components/ui/progress"
@@ -13,29 +13,45 @@ import { Clock, Sun, Moon, Calendar, ArrowRight } from "lucide-react"
 
 export default function ResultadosPage() {
   const { id } = useParams()
+  const router = useRouter()
   const [resultados, setResultados] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // Añadir console.log para depuración al inicio de useEffect
   useEffect(() => {
     async function fetchResultados() {
       try {
-        console.log("Fetching resultados para ID:", id)
-        const response = await fetch(`/api/cuestionario/${id}`)
+        console.log("Buscando resultados para ID:", id)
 
-        if (!response.ok) {
-          console.error("Error en la respuesta:", response.status, response.statusText)
-          throw new Error("No se pudieron cargar los resultados")
+        // Primero verificar si hay resultados guardados localmente
+        const localResultados = localStorage.getItem("cronotipo_resultados")
+        if (localResultados) {
+          const parsedLocalResultados = JSON.parse(localResultados)
+
+          // Si el ID coincide con el de los resultados locales, usar esos datos
+          if (parsedLocalResultados.id === id) {
+            console.log("Usando resultados guardados localmente")
+            setResultados(parsedLocalResultados)
+            setLoading(false)
+            return
+          }
         }
 
-        const data = await response.json()
-        console.log("Datos recibidos:", data)
-        setResultados(data)
+        // Verificar si hay resultados en el almacenamiento de sesión
+        const sessionResultados = sessionStorage.getItem(`cronotipo_resultados_${id}`)
+        if (sessionResultados) {
+          console.log("Usando resultados de la sesión")
+          setResultados(JSON.parse(sessionResultados))
+          setLoading(false)
+          return
+        }
+
+        // Si no hay resultados locales o el ID no coincide, mostrar error
+        setError("No se encontraron resultados para este ID. Por favor, completa el cuestionario nuevamente.")
+        setLoading(false)
       } catch (error) {
         console.error("Error:", error)
         setError("Hubo un problema al cargar los resultados. Por favor, intentalo de nuevo.")
-      } finally {
         setLoading(false)
       }
     }
@@ -76,23 +92,25 @@ export default function ResultadosPage() {
   }
 
   // Convertir valores decimales a formato de hora
-  const MSF_hora = decimalAHora(resultados.MSF)
-  const MSFsc_hora = decimalAHora(resultados.MSFsc)
-  const SDw_hora = `${Math.floor(resultados.SDw)}h ${Math.round((resultados.SDw % 1) * 60)}min`
-  const SDf_hora = `${Math.floor(resultados.SDf)}h ${Math.round((resultados.SDf % 1) * 60)}min`
-  const SDweek_hora = `${Math.floor(resultados.SDweek)}h ${Math.round((resultados.SDweek % 1) * 60)}min`
-  const SJL_hora = `${Math.floor(resultados.SJL)}h ${Math.round((resultados.SJL % 1) * 60)}min`
+  const MSF_hora = decimalAHora(resultados.MSF || resultados.msf || 0)
+  const MSFsc_hora = decimalAHora(resultados.MSFsc || resultados.msf_sc || 0)
+  const SDw_hora = `${Math.floor(resultados.SDw || resultados.sd_w || 0)}h ${Math.round(((resultados.SDw || resultados.sd_w || 0) % 1) * 60)}min`
+  const SDf_hora = `${Math.floor(resultados.SDf || resultados.sd_f || 0)}h ${Math.round(((resultados.SDf || resultados.sd_f || 0) % 1) * 60)}min`
+  const SDweek_hora = `${Math.floor(resultados.SDweek || resultados.sd_week || 0)}h ${Math.round(((resultados.SDweek || resultados.sd_week || 0) % 1) * 60)}min`
+  const SJL_hora = `${Math.floor(resultados.SJL || resultados.sjl || 0)}h ${Math.round(((resultados.SJL || resultados.sjl || 0) % 1) * 60)}min`
 
   // Determinar el color y el icono según el cronotipo
   const getCronotipoColor = () => {
-    if (resultados.cronotipo.includes("temprano")) return "text-amber-500"
-    if (resultados.cronotipo.includes("tardío")) return "text-indigo-600"
+    const cronotipo = resultados.cronotipo || ""
+    if (cronotipo.includes("temprano")) return "text-amber-500"
+    if (cronotipo.includes("tardío")) return "text-indigo-600"
     return "text-emerald-500" // Para cronotipo intermedio
   }
 
   const getCronotipoIcon = () => {
-    if (resultados.cronotipo.includes("temprano")) return <Sun className="h-12 w-12 text-amber-500" />
-    if (resultados.cronotipo.includes("tardío")) return <Moon className="h-12 w-12 text-indigo-600" />
+    const cronotipo = resultados.cronotipo || ""
+    if (cronotipo.includes("temprano")) return <Sun className="h-12 w-12 text-amber-500" />
+    if (cronotipo.includes("tardío")) return <Moon className="h-12 w-12 text-indigo-600" />
     return <Clock className="h-12 w-12 text-emerald-500" /> // Para cronotipo intermedio
   }
 
@@ -102,7 +120,8 @@ export default function ResultadosPage() {
     // Convertimos a una escala de 0 a 100
     const min = 2
     const max = 7
-    const position = ((resultados.MSFsc - min) / (max - min)) * 100
+    const msf_sc = resultados.MSFsc || resultados.msf_sc || 4.5
+    const position = ((msf_sc - min) / (max - min)) * 100
     return Math.max(0, Math.min(100, position)) // Aseguramos que esté entre 0 y 100
   }
 
@@ -123,7 +142,13 @@ export default function ResultadosPage() {
           <TabsContent value="resumen">
             <Card className="mb-6 overflow-hidden">
               <div
-                className={`p-6 flex justify-center items-center ${resultados.cronotipo.includes("temprano") ? "bg-amber-100" : resultados.cronotipo.includes("tardío") ? "bg-indigo-100" : "bg-emerald-100"}`}
+                className={`p-6 flex justify-center items-center ${
+                  (resultados.cronotipo || "").includes("temprano")
+                    ? "bg-amber-100"
+                    : (resultados.cronotipo || "").includes("tardío")
+                      ? "bg-indigo-100"
+                      : "bg-emerald-100"
+                }`}
               >
                 <div className="text-center">
                   {getCronotipoIcon()}
@@ -209,9 +234,9 @@ export default function ResultadosPage() {
                 <div>
                   <h3 className={`font-medium ${getCronotipoColor()}`}>Sobre tu cronotipo: {resultados.cronotipo}</h3>
                   <p className="mt-2">
-                    {resultados.cronotipo.includes("temprano")
+                    {(resultados.cronotipo || "").includes("temprano")
                       ? "Tendés a sentirte más alerta y productivo/a durante las primeras horas del día. Te resulta más fácil despertarte temprano y es probable que te sientas cansado/a más temprano por la noche."
-                      : resultados.cronotipo.includes("tardío")
+                      : (resultados.cronotipo || "").includes("tardío")
                         ? "Tendés a sentirte más alerta y productivo/a durante la tarde y noche. Te puede resultar difícil despertarte temprano y es probable que te sientas más energético/a por la noche."
                         : "Tu ritmo biológico se encuentra en un punto intermedio. No sos extremadamente madrugador/a ni noctámbulo/a, lo que te da cierta flexibilidad en tus horarios."}
                   </p>
@@ -220,9 +245,9 @@ export default function ResultadosPage() {
                 <div>
                   <h3 className="font-medium">Sobre tu jetlag social: {SJL_hora}</h3>
                   <p className="mt-2">
-                    {resultados.SJL < 1
+                    {(resultados.SJL || resultados.sjl || 0) < 1
                       ? "Tu jetlag social es mínimo, lo que indica que tus horarios sociales están bien alineados con tu reloj biológico interno."
-                      : resultados.SJL < 2
+                      : (resultados.SJL || resultados.sjl || 0) < 2
                         ? "Tenés un jetlag social moderado. Esto puede causar cierta fatiga, especialmente al inicio de la semana laboral."
                         : "Tu jetlag social es significativo. Esto puede estar afectando tu bienestar, causando fatiga crónica y otros problemas de salud."}
                   </p>
@@ -245,9 +270,9 @@ export default function ResultadosPage() {
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="text-primary">•</span>{" "}
-                      {resultados.cronotipo.includes("temprano")
+                      {(resultados.cronotipo || "").includes("temprano")
                         ? "Programá tus actividades más importantes y que requieran mayor concentración durante la mañana, cuando tu nivel de alerta es mayor."
-                        : resultados.cronotipo.includes("tardío")
+                        : (resultados.cronotipo || "").includes("tardío")
                           ? "Programá tus actividades más importantes y que requieran mayor concentración durante la tarde o noche, cuando tu nivel de alerta es mayor."
                           : "Distribuí tus actividades importantes a lo largo del día, aprovechando tu flexibilidad de horarios."}
                     </li>
@@ -309,7 +334,9 @@ export default function ResultadosPage() {
 
                     <div className="bg-slate-50 p-3 rounded-lg">
                       <h3 className="font-medium">SOf (Inicio del sueño en días libres)</h3>
-                      <p className="text-xl mt-1 font-semibold">{decimalAHora(resultados.SOf)}</p>
+                      <p className="text-xl mt-1 font-semibold">
+                        {decimalAHora(resultados.SOf || resultados.so_f || 0)}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -323,14 +350,22 @@ export default function ResultadosPage() {
                       <h4 className="text-sm font-medium">Días laborables</h4>
                       <ul className="mt-2 space-y-1 text-sm">
                         <li>
-                          Hora de acostarse: <span className="font-semibold">{resultados.horaAcostarseLaboral}</span>
+                          Hora de acostarse:{" "}
+                          <span className="font-semibold">
+                            {resultados.horaAcostarseLaboral || resultados.hora_acostar_lab}
+                          </span>
                         </li>
                         <li>
                           Tiempo para dormirse:{" "}
-                          <span className="font-semibold">{resultados.minutosParaDormirseLaboral} min</span>
+                          <span className="font-semibold">
+                            {resultados.minutosParaDormirseLaboral || resultados.min_dormirse_lab} min
+                          </span>
                         </li>
                         <li>
-                          Hora de despertar: <span className="font-semibold">{resultados.horaDespertarLaboral}</span>
+                          Hora de despertar:{" "}
+                          <span className="font-semibold">
+                            {resultados.horaDespertarLaboral || resultados.hora_despertar_lab}
+                          </span>
                         </li>
                         <li>
                           Duración del sueño: <span className="font-semibold">{SDw_hora}</span>
@@ -342,14 +377,22 @@ export default function ResultadosPage() {
                       <h4 className="text-sm font-medium">Días libres</h4>
                       <ul className="mt-2 space-y-1 text-sm">
                         <li>
-                          Hora de acostarse: <span className="font-semibold">{resultados.horaAcostarseLibre}</span>
+                          Hora de acostarse:{" "}
+                          <span className="font-semibold">
+                            {resultados.horaAcostarseLibre || resultados.hora_acostar_lib}
+                          </span>
                         </li>
                         <li>
                           Tiempo para dormirse:{" "}
-                          <span className="font-semibold">{resultados.minutosParaDormirseLibre} min</span>
+                          <span className="font-semibold">
+                            {resultados.minutosParaDormirseLibre || resultados.min_dormirse_lib} min
+                          </span>
                         </li>
                         <li>
-                          Hora de despertar: <span className="font-semibold">{resultados.horaDespertarLibre}</span>
+                          Hora de despertar:{" "}
+                          <span className="font-semibold">
+                            {resultados.horaDespertarLibre || resultados.hora_despertar_lib}
+                          </span>
                         </li>
                         <li>
                           Duración del sueño: <span className="font-semibold">{SDf_hora}</span>
